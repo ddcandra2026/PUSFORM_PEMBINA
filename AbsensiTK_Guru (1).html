@@ -1,0 +1,1009 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+<meta name="theme-color" content="#FFF9F2">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<title id="pageTitle">AbsensiTK — Guru & Admin</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Baloo+2:wght@500;600;700;800&family=Plus+Jakarta+Sans:wght@400;500;600;700;800&family=JetBrains+Mono:wght@400;500;700&display=swap" rel="stylesheet">
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+<style>
+:root{
+  --bg:        #FFF9F2;
+  --bg2:       #FFF3E6;
+  --surface:   #FFFFFF;
+  --surface2:  #FFF1E0;
+  --border:    rgba(43,33,64,0.08);
+  --border2:   rgba(43,33,64,0.16);
+  --text:      #2B2140;
+  --text2:     #6E6480;
+  --muted:     #A79FB3;
+  --coral:     #FF7B54;
+  --coral-dk:  #E8623C;
+  --mint:      #29B6A8;
+  --sky:       #5B9BD5;
+  --purple:    #9B87F5;
+  --yellow:    #FFC857;
+  --red:       #F0554A;
+  --ok-bg:     rgba(41,182,168,0.12);
+  --ok-brd:    rgba(41,182,168,0.30);
+  --warn-bg:   rgba(255,200,87,0.18);
+  --warn-brd:  rgba(255,200,87,0.45);
+  --bad-bg:    rgba(240,85,74,0.10);
+  --bad-brd:   rgba(240,85,74,0.28);
+  --r: 20px; --r-sm: 14px; --r-xs: 10px;
+  --display: 'Baloo 2', sans-serif;
+  --sans: 'Plus Jakarta Sans', sans-serif;
+  --mono: 'JetBrains Mono', monospace;
+}
+*,*::before,*::after{box-sizing:border-box;margin:0;padding:0;-webkit-tap-highlight-color:transparent}
+html{height:100%}
+body{
+  font-family:var(--sans);background:var(--bg);color:var(--text);
+  min-height:100dvh;display:flex;flex-direction:column;
+  max-width:600px;margin:0 auto;position:relative;overflow-x:hidden;
+}
+body::before{
+  content:'';position:fixed;inset:0;pointer-events:none;z-index:0;
+  background:
+    radial-gradient(circle at 8% 4%, rgba(255,123,84,0.10), transparent 40%),
+    radial-gradient(circle at 92% 14%, rgba(91,155,213,0.10), transparent 38%),
+    radial-gradient(circle at 50% 100%, rgba(155,135,245,0.08), transparent 45%);
+}
+button{font-family:inherit;border:none;background:none;cursor:pointer;color:inherit}
+input,select,textarea{font-family:inherit;color:inherit}
+::-webkit-scrollbar{display:none}
+.hidden{display:none !important}
+
+/* HEADER */
+.hdr{
+  position:sticky;top:0;z-index:90;
+  background:rgba(255,249,242,0.92);backdrop-filter:blur(14px);
+  border-bottom:1px solid var(--border);
+  padding:12px 16px;display:flex;align-items:center;justify-content:space-between;
+}
+.hdr-brand{display:flex;align-items:center;gap:10px;}
+.hdr-logo{
+  width:42px;height:42px;border-radius:14px;
+  background:linear-gradient(135deg,var(--coral),var(--yellow));
+  display:flex;align-items:center;justify-content:center;font-size:22px;
+  box-shadow:0 4px 14px rgba(255,123,84,0.35);flex-shrink:0;
+}
+.hdr-title{font-family:var(--display);font-weight:700;font-size:19px;line-height:1.1;}
+.hdr-sub{font-size:11.5px;color:var(--text2);margin-top:2px;font-weight:600;}
+.hdr-user{display:flex;align-items:center;gap:8px;font-size:12px;color:var(--text2);font-weight:600;}
+.hdr-avatar{width:30px;height:30px;border-radius:50%;background:var(--surface2);display:flex;align-items:center;justify-content:center;font-size:14px;border:1px solid var(--border2);}
+
+/* MAIN */
+main{flex:1;padding:16px 16px 100px;position:relative;z-index:1;}
+.screen{display:none;animation:fadein .25s ease;}
+.screen.active{display:block;}
+@keyframes fadein{from{opacity:0;transform:translateY(6px)}to{opacity:1;transform:none}}
+
+/* CARD */
+.card{
+  background:var(--surface);border:1px solid var(--border);border-radius:var(--r);
+  padding:18px;margin-bottom:14px;box-shadow:0 2px 10px rgba(43,33,64,0.04);
+}
+.card-title{font-family:var(--display);font-weight:700;font-size:16px;margin-bottom:12px;display:flex;align-items:center;gap:8px;}
+
+/* BUTTONS */
+.btn{
+  display:inline-flex;align-items:center;justify-content:center;gap:8px;
+  padding:13px 20px;border-radius:var(--r-sm);font-weight:700;font-size:14.5px;
+  transition:transform .15s ease, box-shadow .15s ease;
+}
+.btn:active{transform:scale(0.97);}
+.btn-primary{background:linear-gradient(135deg,var(--coral),var(--coral-dk));color:#fff;box-shadow:0 6px 16px rgba(255,123,84,0.35);}
+.btn-mint{background:linear-gradient(135deg,var(--mint),#1f9c90);color:#fff;box-shadow:0 6px 16px rgba(41,182,168,0.32);}
+.btn-outline{background:var(--surface2);color:var(--text);border:1.5px solid var(--border2);}
+.btn-block{width:100%;}
+.btn-sm{padding:8px 14px;font-size:12.5px;border-radius:10px;}
+.btn:disabled{opacity:0.45;pointer-events:none;}
+
+/* FORM */
+.form-group{margin-bottom:14px;}
+.form-label{font-size:12.5px;font-weight:700;color:var(--text2);margin-bottom:6px;display:block;}
+.form-input,.form-select,.form-textarea{
+  width:100%;padding:12px 14px;border-radius:var(--r-xs);border:1.5px solid var(--border2);
+  background:var(--bg2);font-size:14.5px;color:var(--text);
+}
+.form-input:focus,.form-select:focus,.form-textarea:focus{outline:none;border-color:var(--coral);}
+
+/* CHIP / BADGE */
+.chip{display:inline-flex;align-items:center;gap:5px;padding:4px 10px;border-radius:100px;font-size:11.5px;font-weight:700;}
+.chip-kelas{background:var(--surface2);color:var(--text);border:1px solid var(--border2);}
+.chip-ok{background:var(--ok-bg);color:var(--mint);border:1px solid var(--ok-brd);}
+.chip-warn{background:var(--warn-bg);color:#946200;border:1px solid var(--warn-brd);}
+.chip-bad{background:var(--bad-bg);color:var(--red);border:1px solid var(--bad-brd);}
+
+/* CUBBY (signature element) — represents each child's daily attendance
+   like a kindergarten cubby: closed=belum datang, open=hadir */
+.cubby-row{display:flex;align-items:center;gap:12px;padding:12px 4px;border-bottom:1px solid var(--border);}
+.cubby-row:last-child{border-bottom:none;}
+.cubby{
+  width:46px;height:46px;border-radius:12px;flex-shrink:0;position:relative;
+  display:flex;align-items:center;justify-content:center;font-size:20px;
+  background:var(--surface2);border:2px solid var(--border2);
+}
+.cubby.open{background:linear-gradient(160deg,var(--ok-bg),var(--surface));border-color:var(--mint);}
+.cubby.done{background:linear-gradient(160deg,rgba(155,135,245,0.14),var(--surface));border-color:var(--purple);}
+.cubby-door{position:absolute;inset:0;border-radius:10px;background:var(--surface2);border:1.5px solid var(--border2);transition:transform .3s ease;transform-origin:left center;}
+.cubby.open .cubby-door,.cubby.done .cubby-door{transform:rotateY(-100deg);opacity:0;}
+.cubby-info{flex:1;min-width:0;}
+.cubby-name{font-weight:700;font-size:14.5px;}
+.cubby-meta{font-size:11.5px;color:var(--text2);margin-top:2px;font-family:var(--mono);}
+.cubby-action{flex-shrink:0;}
+
+/* SEARCH */
+.search-box{position:relative;margin-bottom:14px;}
+.search-box input{padding-left:38px;}
+.search-icon{position:absolute;left:12px;top:50%;transform:translateY(-50%);width:16px;height:16px;opacity:0.5;}
+
+/* STUDENT PICK LIST */
+.pick-item{display:flex;align-items:center;gap:12px;padding:11px 10px;border-radius:var(--r-xs);cursor:pointer;transition:background .15s;}
+.pick-item:active{background:var(--surface2);}
+.pick-avatar{width:38px;height:38px;border-radius:50%;background:var(--surface2);display:flex;align-items:center;justify-content:center;font-size:17px;flex-shrink:0;border:1px solid var(--border2);}
+.pick-name{font-weight:700;font-size:14px;}
+.pick-sub{font-size:11.5px;color:var(--text2);}
+
+/* CHAT */
+.chat-wrap{display:flex;flex-direction:column;height:calc(100dvh - 230px);min-height:340px;}
+.chat-scroll{flex:1;overflow-y:auto;padding:6px 2px 12px;display:flex;flex-direction:column;gap:10px;}
+.bubble{max-width:78%;padding:10px 13px;border-radius:16px;font-size:14px;line-height:1.4;position:relative;}
+.bubble-in{align-self:flex-start;background:var(--surface);border:1px solid var(--border);border-bottom-left-radius:5px;}
+.bubble-out{align-self:flex-end;background:linear-gradient(135deg,var(--coral),var(--coral-dk));color:#fff;border-bottom-right-radius:5px;}
+.bubble-admin{align-self:center;background:var(--surface2);border:1px dashed var(--border2);font-size:12.5px;color:var(--text2);text-align:center;max-width:90%;}
+.bubble-sender{font-size:11px;font-weight:700;opacity:0.75;margin-bottom:3px;}
+.bubble-time{font-size:10px;opacity:0.6;margin-top:4px;text-align:right;}
+.bubble img{max-width:100%;border-radius:10px;margin-top:6px;display:block;}
+.chat-input-row{display:flex;gap:8px;align-items:center;padding-top:10px;border-top:1px solid var(--border);}
+.chat-input-row input[type=text]{flex:1;border-radius:100px;padding:11px 16px;}
+.icon-btn{width:42px;height:42px;border-radius:50%;background:var(--surface2);display:flex;align-items:center;justify-content:center;flex-shrink:0;border:1.5px solid var(--border2);}
+.send-btn{width:42px;height:42px;border-radius:50%;background:linear-gradient(135deg,var(--coral),var(--coral-dk));color:#fff;display:flex;align-items:center;justify-content:center;flex-shrink:0;box-shadow:0 4px 12px rgba(255,123,84,0.35);}
+
+/* BOTTOM NAV */
+.bottom-nav{
+  position:fixed;bottom:0;left:50%;transform:translateX(-50%);width:100%;max-width:600px;
+  background:rgba(255,249,242,0.95);backdrop-filter:blur(16px);border-top:1px solid var(--border);
+  display:flex;justify-content:space-around;padding:8px 4px calc(8px + env(safe-area-inset-bottom));z-index:90;
+}
+.nav-item{display:flex;flex-direction:column;align-items:center;gap:3px;padding:6px 10px;border-radius:12px;flex:1;}
+.nav-item svg{width:22px;height:22px;fill:none;stroke:var(--muted);stroke-width:2;}
+.nav-item span{font-size:10.5px;font-weight:700;color:var(--muted);}
+.nav-item.active svg{stroke:var(--coral);}
+.nav-item.active span{color:var(--coral-dk);}
+
+/* LOGIN SCREEN */
+.login-wrap{min-height:100dvh;display:flex;flex-direction:column;align-items:center;justify-content:center;padding:32px 24px;position:relative;z-index:1;}
+.login-logo{width:84px;height:84px;border-radius:26px;background:linear-gradient(135deg,var(--coral),var(--yellow));display:flex;align-items:center;justify-content:center;font-size:42px;box-shadow:0 10px 26px rgba(255,123,84,0.4);margin-bottom:18px;}
+.login-title{font-family:var(--display);font-weight:800;font-size:26px;text-align:center;}
+.login-sub{font-size:13.5px;color:var(--text2);text-align:center;margin-top:6px;margin-bottom:28px;}
+.login-card{width:100%;background:var(--surface);border:1px solid var(--border);border-radius:var(--r);padding:22px;box-shadow:0 8px 28px rgba(43,33,64,0.06);}
+.pin-dots{display:flex;gap:12px;justify-content:center;margin:18px 0;}
+.pin-dot{width:14px;height:14px;border-radius:50%;border:2px solid var(--border2);}
+.pin-dot.filled{background:var(--coral);border-color:var(--coral);}
+.pin-pad{display:grid;grid-template-columns:repeat(3,1fr);gap:10px;}
+.pin-key{padding:16px 0;border-radius:14px;background:var(--surface2);font-family:var(--display);font-weight:700;font-size:19px;text-align:center;}
+.pin-key:active{background:var(--border2);}
+
+/* EMPTY STATE */
+.empty{text-align:center;padding:36px 16px;color:var(--text2);}
+.empty-emoji{font-size:36px;margin-bottom:10px;}
+.empty-title{font-weight:700;color:var(--text);margin-bottom:4px;}
+.empty-desc{font-size:12.5px;}
+
+/* TOAST */
+.toast{position:fixed;bottom:96px;left:50%;transform:translateX(-50%) translateY(20px);background:var(--text);color:#fff;padding:11px 20px;border-radius:100px;font-size:13px;font-weight:600;opacity:0;transition:all .3s ease;z-index:200;max-width:90%;text-align:center;pointer-events:none;box-shadow:0 8px 24px rgba(0,0,0,0.2);}
+.toast.show{opacity:1;transform:translateX(-50%) translateY(0);}
+
+/* MISC */
+.row{display:flex;gap:10px;}
+.row > *{flex:1;}
+.text-muted{color:var(--text2);font-size:12.5px;}
+.mt8{margin-top:8px;}.mt12{margin-top:12px;}.mt16{margin-top:16px;}
+.section-title{font-family:var(--display);font-weight:800;font-size:21px;margin-bottom:14px;}
+.tabs{display:flex;gap:8px;overflow-x:auto;padding-bottom:4px;margin-bottom:14px;}
+.tab-pill{padding:8px 15px;border-radius:100px;background:var(--surface2);font-size:12.5px;font-weight:700;color:var(--text2);white-space:nowrap;border:1.5px solid transparent;}
+.tab-pill.active{background:var(--coral);color:#fff;}
+.copy-token{font-family:var(--mono);font-weight:700;background:var(--bg2);border:1.5px dashed var(--border2);border-radius:10px;padding:8px 12px;display:flex;align-items:center;justify-content:space-between;gap:8px;font-size:13px;}
+.nfc-icon{width:20px;height:20px;}
+#nfcScanBtn{position:relative;overflow:hidden;}
+#nfcScanBtn:active .nfc-icon{animation:nfcPulse 1.4s ease infinite;}
+@keyframes nfcPulse{0%{opacity:0.5;transform:scale(0.9);}50%{opacity:1;transform:scale(1.15);}100%{opacity:0.5;transform:scale(0.9);}}
+</style>
+</head>
+<body>
+
+<!-- ============ LOGIN ============ -->
+<div id="loginScreen" class="login-wrap">
+  <div class="login-logo">🧸</div>
+  <div class="login-title" id="loginAppName">AbsensiTK</div>
+  <div class="login-sub" id="loginAppSub">Presensi &amp; Komunikasi Sekolah TK</div>
+
+  <div class="login-card" id="loginStep1">
+    <div class="form-group">
+      <label class="form-label">Belum konek Supabase? Buka Pengaturan dulu</label>
+      <button class="btn btn-outline btn-block" onclick="showConnectSetup()">⚙️ Pengaturan Koneksi Database</button>
+    </div>
+    <div class="form-group">
+      <label class="form-label">Pilih Nama Guru</label>
+      <select class="form-select" id="loginGuruSelect"></select>
+    </div>
+    <button class="btn btn-primary btn-block" onclick="startPinEntry()">Lanjutkan →</button>
+  </div>
+
+  <div class="login-card hidden" id="loginStep2">
+    <div style="text-align:center;font-weight:700;margin-bottom:4px;" id="loginGuruName"></div>
+    <div class="text-muted" style="text-align:center;">Masukkan PIN 4 digit</div>
+    <div class="pin-dots" id="pinDots">
+      <div class="pin-dot"></div><div class="pin-dot"></div><div class="pin-dot"></div><div class="pin-dot"></div>
+    </div>
+    <div class="pin-pad" id="pinPad"></div>
+    <button class="btn btn-outline btn-block mt16" onclick="cancelPinEntry()">← Kembali</button>
+  </div>
+
+  <div class="login-card hidden" id="connectSetup">
+    <div class="card-title">⚙️ Koneksi Supabase</div>
+    <div class="form-group">
+      <label class="form-label">Project URL</label>
+      <input type="text" class="form-input" id="setupUrl" placeholder="https://xxxx.supabase.co">
+    </div>
+    <div class="form-group">
+      <label class="form-label">Anon Public Key</label>
+      <input type="text" class="form-input" id="setupKey" placeholder="eyJhbGciOi...">
+    </div>
+    <button class="btn btn-primary btn-block" onclick="saveConnectSetup()">Simpan &amp; Sambungkan</button>
+    <button class="btn btn-outline btn-block mt12" onclick="hideConnectSetup()">Batal</button>
+    <p class="text-muted mt12" style="line-height:1.6;">Jalankan skema database (schema_absensitk.sql) di Supabase → SQL Editor sebelum menyambungkan. Tambahkan minimal satu baris di tabel <strong>guru</strong> agar bisa login.</p>
+  </div>
+</div>
+
+<!-- ============ APP ============ -->
+<div id="app" class="hidden">
+  <div class="hdr">
+    <div class="hdr-brand">
+      <div class="hdr-logo">🧸</div>
+      <div>
+        <div class="hdr-title" id="hdrAppName">AbsensiTK</div>
+        <div class="hdr-sub" id="hdrAppSub">Guru &amp; Admin</div>
+      </div>
+    </div>
+    <div class="hdr-user">
+      <div class="hdr-avatar">👤</div>
+      <div>
+        <div id="hdrGuruName">—</div>
+      </div>
+      <button class="btn-sm btn-outline btn" onclick="logout()" style="margin-left:6px;">Keluar</button>
+    </div>
+  </div>
+
+  <main>
+    <!-- ===== PRESENSI ===== -->
+    <div class="screen active" id="screenPresensi">
+      <div class="section-title">Presensi Hari Ini 👋</div>
+      <div class="tabs" id="presensiKelasTabs"></div>
+
+      <button class="btn btn-mint btn-block" id="nfcScanBtn" onclick="scanNfcPresensi()" style="margin-bottom:14px;">
+        <svg class="nfc-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M6 8.5a7 7 0 0 1 0 7"/><path d="M9.5 5.5a11.5 11.5 0 0 1 0 13"/><path d="M13 3a15.5 15.5 0 0 1 0 18"/><circle cx="3" cy="12" r="1.4" fill="currentColor" stroke="none"/></svg>
+        Tap Kartu NFC untuk Check-In / Out
+      </button>
+      <div class="text-muted" id="nfcStatus" style="text-align:center;margin:-8px 0 14px;"></div>
+
+      <div class="search-box">
+        <svg class="search-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="11" cy="11" r="8"/><path d="m21 21-4.3-4.3"/></svg>
+        <input type="text" class="form-input" id="presensiSearch" placeholder="atau cari nama siswa secara manual..." oninput="renderPresensiList()">
+      </div>
+
+      <div class="card" style="padding:8px 14px;">
+        <div id="presensiList"></div>
+      </div>
+    </div>
+
+    <!-- ===== SISWA ===== -->
+    <div class="screen" id="screenSiswa">
+      <div class="section-title">Data Siswa 🎒</div>
+      <button class="btn btn-primary btn-block mt8" style="margin-bottom:14px;" onclick="openSiswaForm()">+ Tambah Siswa Baru</button>
+      <div class="tabs" id="siswaKelasTabs"></div>
+      <div class="search-box">
+        <svg class="search-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="11" cy="11" r="8"/><path d="m21 21-4.3-4.3"/></svg>
+        <input type="text" class="form-input" id="siswaSearch" placeholder="Cari nama siswa..." oninput="renderSiswaList()">
+      </div>
+      <div id="siswaList"></div>
+    </div>
+
+    <!-- ===== CHAT ===== -->
+    <div class="screen" id="screenChat">
+      <div class="section-title">Chat Kelas 💬</div>
+      <div class="tabs" id="chatKelasTabs"></div>
+      <div class="card" style="padding:14px;">
+        <div class="chat-wrap">
+          <div class="chat-scroll" id="chatScroll"></div>
+          <div class="chat-input-row">
+            <label class="icon-btn" for="chatPhotoInput">📷</label>
+            <input type="file" id="chatPhotoInput" accept="image/*" class="hidden" onchange="handleChatPhoto(event)">
+            <input type="text" id="chatTextInput" placeholder="Tulis pesan..." onkeydown="if(event.key==='Enter')sendChatMessage()">
+            <button class="send-btn" onclick="sendChatMessage()">➤</button>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- ===== REKAP ===== -->
+    <div class="screen" id="screenRekap">
+      <div class="section-title">Rekap Kehadiran 📊</div>
+      <div class="card">
+        <div class="row">
+          <div class="form-group"><label class="form-label">Dari</label><input type="date" class="form-input" id="rekapFrom"></div>
+          <div class="form-group"><label class="form-label">Sampai</label><input type="date" class="form-input" id="rekapTo"></div>
+        </div>
+        <button class="btn btn-mint btn-block" onclick="loadRekap()">Tampilkan Rekap</button>
+      </div>
+      <div class="card" id="rekapResult"></div>
+    </div>
+
+    <!-- ===== PENGATURAN ===== -->
+    <div class="screen" id="screenSetting">
+      <div class="section-title">Pengaturan ⚙️</div>
+
+      <div class="card">
+        <div class="card-title">🏫 Identitas Sekolah</div>
+        <div class="form-group"><label class="form-label">Nama Aplikasi</label><input type="text" class="form-input" id="setAppName" oninput="previewBranding()"></div>
+        <div class="form-group"><label class="form-label">Sub-judul</label><input type="text" class="form-input" id="setAppSub" oninput="previewBranding()"></div>
+        <button class="btn btn-primary btn-block" onclick="saveBranding()">Simpan Identitas</button>
+      </div>
+
+      <div class="card">
+        <div class="card-title">🐣 Kelola Kelas</div>
+        <div id="kelasManageList"></div>
+        <div class="row mt12">
+          <input type="text" class="form-input" id="newKelasNama" placeholder="Nama kelas baru, mis: Kelas A - Kancil">
+        </div>
+        <button class="btn btn-outline btn-block mt8" onclick="addKelas()">+ Tambah Kelas</button>
+      </div>
+
+      <div class="card">
+        <div class="card-title">👩‍🏫 Kelola Guru</div>
+        <div id="guruManageList"></div>
+        <div class="form-group mt12"><label class="form-label">Nama Guru</label><input type="text" class="form-input" id="newGuruNama"></div>
+        <div class="form-group"><label class="form-label">Peran</label>
+          <select class="form-select" id="newGuruPeran"><option value="wali_kelas">Wali Kelas</option><option value="admin">Admin (akses semua kelas)</option></select>
+        </div>
+        <div class="form-group" id="newGuruKelasWrap"><label class="form-label">Kelas Ampu</label><select class="form-select" id="newGuruKelas"></select></div>
+        <div class="form-group"><label class="form-label">PIN 4 digit</label><input type="text" maxlength="4" class="form-input" id="newGuruPin" placeholder="1234"></div>
+        <button class="btn btn-outline btn-block" onclick="addGuru()">+ Tambah Guru</button>
+      </div>
+
+      <div class="card">
+        <div class="card-title">🔌 Koneksi Database</div>
+        <div class="form-group"><label class="form-label">Project URL</label><input type="text" class="form-input" id="cfgUrl"></div>
+        <div class="form-group"><label class="form-label">Anon Key</label><input type="text" class="form-input" id="cfgKey"></div>
+        <button class="btn btn-outline btn-block" onclick="saveCfgFromSettings()">Simpan Koneksi</button>
+      </div>
+    </div>
+  </main>
+
+  <div class="bottom-nav">
+    <div class="nav-item active" data-screen="Presensi" onclick="switchScreen('Presensi')">
+      <svg viewBox="0 0 24 24" stroke-linecap="round" stroke-linejoin="round"><path d="M9 12l2 2 4-4"/><circle cx="12" cy="12" r="9"/></svg>
+      <span>Presensi</span>
+    </div>
+    <div class="nav-item" data-screen="Siswa" onclick="switchScreen('Siswa')">
+      <svg viewBox="0 0 24 24" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="8" r="4"/><path d="M4 21c0-4 4-6 8-6s8 2 8 6"/></svg>
+      <span>Siswa</span>
+    </div>
+    <div class="nav-item" data-screen="Chat" onclick="switchScreen('Chat')">
+      <svg viewBox="0 0 24 24" stroke-linecap="round" stroke-linejoin="round"><path d="M21 11.5a8.38 8.38 0 0 1-8.5 8.5A8.5 8.5 0 1 1 21 11.5z"/></svg>
+      <span>Chat</span>
+    </div>
+    <div class="nav-item" data-screen="Rekap" onclick="switchScreen('Rekap')">
+      <svg viewBox="0 0 24 24" stroke-linecap="round" stroke-linejoin="round"><path d="M3 3v18h18"/><path d="M7 15l4-4 3 3 5-6"/></svg>
+      <span>Rekap</span>
+    </div>
+    <div class="nav-item" data-screen="Setting" onclick="switchScreen('Setting')">
+      <svg viewBox="0 0 24 24" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.7 1.7 0 0 0 .3 1.9l.1.1a2 2 0 1 1-2.8 2.8l-.1-.1a1.7 1.7 0 0 0-1.9-.3 1.7 1.7 0 0 0-1 1.5V21a2 2 0 1 1-4 0v-.1a1.7 1.7 0 0 0-1-1.6 1.7 1.7 0 0 0-1.9.3l-.1.1a2 2 0 1 1-2.8-2.8l.1-.1a1.7 1.7 0 0 0 .3-1.9 1.7 1.7 0 0 0-1.5-1H3a2 2 0 1 1 0-4h.1a1.7 1.7 0 0 0 1.6-1 1.7 1.7 0 0 0-.3-1.9l-.1-.1a2 2 0 1 1 2.8-2.8l.1.1a1.7 1.7 0 0 0 1.9.3H9a1.7 1.7 0 0 0 1-1.5V3a2 2 0 1 1 4 0v.1a1.7 1.7 0 0 0 1 1.5 1.7 1.7 0 0 0 1.9-.3l.1-.1a2 2 0 1 1 2.8 2.8l-.1.1a1.7 1.7 0 0 0-.3 1.9V9a1.7 1.7 0 0 0 1.5 1H21a2 2 0 1 1 0 4h-.1a1.7 1.7 0 0 0-1.5 1z"/></svg>
+      <span>Atur</span>
+    </div>
+  </div>
+</div>
+
+<!-- ===== MODAL: FORM SISWA ===== -->
+<div id="siswaModal" class="hidden" style="position:fixed;inset:0;z-index:300;background:rgba(43,33,64,0.45);display:flex;align-items:flex-end;">
+  <div style="background:var(--bg);width:100%;max-width:600px;margin:0 auto;border-radius:24px 24px 0 0;padding:22px;max-height:88dvh;overflow-y:auto;">
+    <div class="card-title" id="siswaModalTitle">Tambah Siswa</div>
+    <input type="hidden" id="siswaEditId">
+    <div class="form-group"><label class="form-label">Nama Lengkap</label><input type="text" class="form-input" id="fNama"></div>
+    <div class="form-group"><label class="form-label">Kelas</label><select class="form-select" id="fKelas"></select></div>
+    <div class="form-group"><label class="form-label">NISN (opsional)</label><input type="text" class="form-input" id="fNisn"></div>
+    <div class="form-group">
+      <label class="form-label">Kartu NFC</label>
+      <div class="copy-token"><span id="fNfcVal">Belum ada kartu</span><button class="btn-sm btn-outline btn" type="button" onclick="tapToRegisterNfc()">📶 Tap Kartu</button></div>
+      <input type="hidden" id="fNfcUid">
+      <p class="text-muted mt8">Dekatkan kartu/gelang NFC anak ke belakang HP untuk mendaftarkan. Hanya didukung Chrome di Android.</p>
+    </div>
+    <div class="form-group"><label class="form-label">Nama Orang Tua</label><input type="text" class="form-input" id="fOrtu"></div>
+    <div class="form-group"><label class="form-label">No. HP Orang Tua</label><input type="text" class="form-input" id="fHpOrtu"></div>
+    <div class="form-group hidden" id="fTokenWrap">
+      <label class="form-label">Kode Akses Orang Tua</label>
+      <div class="copy-token"><span id="fTokenVal">—</span><button class="btn-sm btn-outline btn" onclick="copyToken()">Salin</button></div>
+      <p class="text-muted mt8">Berikan kode ini ke orang tua untuk login di App Ortu.</p>
+    </div>
+    <div class="row mt16">
+      <button class="btn btn-outline btn-block" onclick="closeSiswaForm()">Batal</button>
+      <button class="btn btn-primary btn-block" onclick="saveSiswa()">Simpan</button>
+    </div>
+  </div>
+</div>
+
+<div class="toast" id="toast"></div>
+
+<script>
+/* ============================================================
+   STATE & KONEKSI
+============================================================ */
+let cfg = JSON.parse(localStorage.getItem('tkCfg') || '{}');
+let branding = JSON.parse(localStorage.getItem('tkBranding') || '{}');
+let sbClient = null;
+let currentGuru = JSON.parse(sessionStorage.getItem('tkGuruSession') || 'null');
+let pinBuffer = '';
+let pendingGuru = null;
+
+let kelasAll = [], siswaAll = [], guruAll = [];
+let activePresensiKelas = 'all';
+let activeSiswaKelas = 'all';
+let activeChatKelasId = null;
+let chatChannel = null;
+
+function toast(msg){
+  const t = document.getElementById('toast');
+  t.textContent = msg; t.classList.add('show');
+  setTimeout(()=>t.classList.remove('show'), 2200);
+}
+
+function initSupabase(){
+  if(!cfg.url || !cfg.key) return false;
+  sbClient = supabase.createClient(cfg.url, cfg.key);
+  return true;
+}
+
+async function sb(path, opts={}){
+  if (!cfg.url || !cfg.key) throw new Error('Supabase belum dikonfigurasi.');
+  const url = cfg.url.replace(/\/$/,'') + '/rest/v1/' + path;
+  const isPatch = opts.method === 'PATCH';
+  const res = await fetch(url, {
+    ...opts,
+    headers:{
+      'apikey': cfg.key, 'Authorization': 'Bearer ' + cfg.key,
+      'Content-Type': 'application/json',
+      'Prefer': isPatch ? 'return=minimal' : 'return=representation',
+      ...(opts.headers||{})
+    }
+  });
+  if(!res.ok){ const t = await res.text(); throw new Error('DB error: '+t); }
+  if(res.status === 204) return [];
+  return res.json();
+}
+
+function todayKey(){ return new Date().toISOString().slice(0,10); }
+function nowTime(){ return new Date().toTimeString().slice(0,5); }
+function fmtTime(t){ return t ? t.slice(0,5) : '—'; }
+function genToken(){
+  const c='ABCDEFGHJKLMNPQRSTUVWXYZ23456789';
+  let s='TK-'; for(let i=0;i<6;i++) s+=c[Math.floor(Math.random()*c.length)];
+  return s;
+}
+
+/* ============================================================
+   KONEKSI SETUP (dari login screen)
+============================================================ */
+function showConnectSetup(){
+  document.getElementById('loginStep1').classList.add('hidden');
+  document.getElementById('connectSetup').classList.remove('hidden');
+  document.getElementById('setupUrl').value = cfg.url || '';
+  document.getElementById('setupKey').value = cfg.key || '';
+}
+function hideConnectSetup(){
+  document.getElementById('connectSetup').classList.add('hidden');
+  document.getElementById('loginStep1').classList.remove('hidden');
+}
+async function saveConnectSetup(){
+  cfg.url = document.getElementById('setupUrl').value.trim();
+  cfg.key = document.getElementById('setupKey').value.trim();
+  localStorage.setItem('tkCfg', JSON.stringify(cfg));
+  if(!initSupabase()){ toast('URL/Key belum lengkap'); return; }
+  toast('Tersambung! Memuat data guru...');
+  hideConnectSetup();
+  await loadGuruForLogin();
+}
+async function saveCfgFromSettings(){
+  cfg.url = document.getElementById('cfgUrl').value.trim();
+  cfg.key = document.getElementById('cfgKey').value.trim();
+  localStorage.setItem('tkCfg', JSON.stringify(cfg));
+  initSupabase();
+  toast('Koneksi disimpan');
+}
+
+/* ============================================================
+   LOGIN FLOW (pilih guru + PIN)
+============================================================ */
+async function loadGuruForLogin(){
+  try{
+    guruAll = await sb('guru?select=*,kelas(id,nama,ikon,warna)&aktif=eq.true&order=nama');
+    const sel = document.getElementById('loginGuruSelect');
+    sel.innerHTML = guruAll.map(g=>`<option value="${g.id}">${g.nama} ${g.peran==='admin'?'(Admin)':'— '+(g.kelas?.nama||'')}</option>`).join('');
+  }catch(e){ toast('Gagal memuat guru. Cek koneksi & skema DB.'); }
+}
+function startPinEntry(){
+  const id = document.getElementById('loginGuruSelect').value;
+  pendingGuru = guruAll.find(g=>String(g.id)===String(id));
+  if(!pendingGuru){ toast('Pilih guru dahulu'); return; }
+  document.getElementById('loginGuruName').textContent = pendingGuru.nama;
+  document.getElementById('loginStep1').classList.add('hidden');
+  document.getElementById('loginStep2').classList.remove('hidden');
+  pinBuffer=''; renderPinDots(); renderPinPad();
+}
+function cancelPinEntry(){
+  document.getElementById('loginStep2').classList.add('hidden');
+  document.getElementById('loginStep1').classList.remove('hidden');
+}
+function renderPinPad(){
+  const keys=['1','2','3','4','5','6','7','8','9','⌫','0','OK'];
+  document.getElementById('pinPad').innerHTML = keys.map(k=>`<div class="pin-key" onclick="pinKey('${k}')">${k}</div>`).join('');
+}
+function renderPinDots(){
+  document.querySelectorAll('.pin-dot').forEach((d,i)=> d.classList.toggle('filled', i<pinBuffer.length));
+}
+function pinKey(k){
+  if(k==='⌫'){ pinBuffer = pinBuffer.slice(0,-1); renderPinDots(); return; }
+  if(k==='OK'){ submitPin(); return; }
+  if(pinBuffer.length<4){ pinBuffer+=k; renderPinDots(); }
+  if(pinBuffer.length===4) setTimeout(submitPin, 150);
+}
+function submitPin(){
+  if(pinBuffer !== pendingGuru.pin){ toast('PIN salah'); pinBuffer=''; renderPinDots(); return; }
+  currentGuru = pendingGuru;
+  sessionStorage.setItem('tkGuruSession', JSON.stringify(currentGuru));
+  enterApp();
+}
+function logout(){
+  sessionStorage.removeItem('tkGuruSession');
+  currentGuru = null;
+  if(chatChannel) sbClient.removeChannel(chatChannel);
+  document.getElementById('app').classList.add('hidden');
+  document.getElementById('loginScreen').classList.remove('hidden');
+  document.getElementById('loginStep2').classList.add('hidden');
+  document.getElementById('loginStep1').classList.remove('hidden');
+}
+
+/* ============================================================
+   ENTER APP
+============================================================ */
+async function enterApp(){
+  document.getElementById('loginScreen').classList.add('hidden');
+  document.getElementById('app').classList.remove('hidden');
+  document.getElementById('hdrGuruName').textContent = currentGuru.nama + (currentGuru.peran==='admin' ? ' · Admin' : '');
+  applyBranding();
+  await loadKelas();
+  await loadSiswa();
+  renderKelasTabs();
+  renderPresensiList();
+  renderSiswaList();
+  setupChatForCurrentGuru();
+  document.getElementById('rekapFrom').value = todayKey();
+  document.getElementById('rekapTo').value = todayKey();
+  renderSettingLists();
+}
+
+function applyBranding(){
+  const name = branding.appName || 'AbsensiTK';
+  const sub = branding.appSub || 'Presensi & Komunikasi Sekolah TK';
+  document.getElementById('hdrAppName').textContent = name;
+  document.getElementById('hdrAppSub').textContent = sub;
+  document.getElementById('loginAppName').textContent = name;
+  document.getElementById('loginAppSub').textContent = sub;
+  document.title = name + ' — Guru & Admin';
+  document.getElementById('setAppName').value = name;
+  document.getElementById('setAppSub').value = sub;
+  document.getElementById('cfgUrl').value = cfg.url||'';
+  document.getElementById('cfgKey').value = cfg.key||'';
+}
+function previewBranding(){
+  document.getElementById('hdrAppName').textContent = document.getElementById('setAppName').value || 'AbsensiTK';
+}
+function saveBranding(){
+  branding.appName = document.getElementById('setAppName').value.trim() || 'AbsensiTK';
+  branding.appSub = document.getElementById('setAppSub').value.trim() || 'Presensi & Komunikasi Sekolah TK';
+  localStorage.setItem('tkBranding', JSON.stringify(branding));
+  applyBranding();
+  toast('Identitas disimpan');
+}
+
+/* ============================================================
+   NAV
+============================================================ */
+function switchScreen(name){
+  document.querySelectorAll('.screen').forEach(s=>s.classList.remove('active'));
+  document.getElementById('screen'+name).classList.add('active');
+  document.querySelectorAll('.nav-item').forEach(n=>n.classList.toggle('active', n.dataset.screen===name));
+  if(name==='Chat') scrollChatBottom();
+}
+
+/* ============================================================
+   KELAS
+============================================================ */
+async function loadKelas(){
+  kelasAll = await sb('kelas?select=*&order=nama');
+}
+function renderKelasTabs(){
+  const isAdmin = currentGuru.peran==='admin';
+  const myKelas = isAdmin ? kelasAll : kelasAll.filter(k=>k.id===currentGuru.kelas_id);
+
+  const presTabs = ['<div class="tab-pill active" data-v="all" onclick="setPresensiTab(this,\'all\')">Semua</div>']
+    .concat(myKelas.map(k=>`<div class="tab-pill" data-v="${k.id}" onclick="setPresensiTab(this,'${k.id}')">${k.ikon||''} ${k.nama}</div>`));
+  document.getElementById('presensiKelasTabs').innerHTML = isAdmin ? presTabs.join('') : myKelas.map((k,i)=>`<div class="tab-pill${i===0?' active':''}" data-v="${k.id}" onclick="setPresensiTab(this,'${k.id}')">${k.ikon||''} ${k.nama}</div>`).join('');
+  if(!isAdmin && myKelas[0]) activePresensiKelas = String(myKelas[0].id);
+
+  document.getElementById('siswaKelasTabs').innerHTML = presTabs.join('').replace(/setPresensiTab/g,'setSiswaTab');
+
+  const chatTabs = myKelas.map((k,i)=>`<div class="tab-pill${i===0?' active':''}" data-v="${k.id}" onclick="setChatTab(this,'${k.id}')">${k.ikon||''} ${k.nama}</div>`);
+  if(isAdmin) chatTabs.unshift(`<div class="tab-pill" data-v="broadcast" onclick="setChatTab(this,'broadcast')">📢 Pengumuman</div>`);
+  document.getElementById('chatKelasTabs').innerHTML = chatTabs.join('');
+  if(myKelas[0]) activeChatKelasId = myKelas[0].id;
+
+  const kelasOpts = kelasAll.map(k=>`<option value="${k.id}">${k.ikon||''} ${k.nama}</option>`).join('');
+  document.getElementById('fKelas').innerHTML = kelasOpts;
+  document.getElementById('newGuruKelas').innerHTML = kelasOpts;
+}
+function setPresensiTab(el,v){ document.querySelectorAll('#presensiKelasTabs .tab-pill').forEach(t=>t.classList.remove('active')); el.classList.add('active'); activePresensiKelas=v; renderPresensiList(); }
+function setSiswaTab(el,v){ document.querySelectorAll('#siswaKelasTabs .tab-pill').forEach(t=>t.classList.remove('active')); el.classList.add('active'); activeSiswaKelas=v; renderSiswaList(); }
+function setChatTab(el,v){ document.querySelectorAll('#chatKelasTabs .tab-pill').forEach(t=>t.classList.remove('active')); el.classList.add('active'); activeChatKelasId = v==='broadcast' ? 'broadcast' : v; loadChatMessages(); subscribeChat(); }
+
+/* ============================================================
+   SISWA
+============================================================ */
+async function loadSiswa(){
+  siswaAll = await sb('siswa?select=*,kelas(id,nama,ikon)&order=nama');
+}
+function renderSiswaList(){
+  const q = (document.getElementById('siswaSearch').value||'').toLowerCase();
+  let list = siswaAll;
+  if(currentGuru.peran!=='admin') list = list.filter(s=>s.kelas_id===currentGuru.kelas_id);
+  if(activeSiswaKelas!=='all') list = list.filter(s=>String(s.kelas_id)===String(activeSiswaKelas));
+  if(q) list = list.filter(s=>s.nama.toLowerCase().includes(q));
+  const box = document.getElementById('siswaList');
+  if(!list.length){ box.innerHTML = emptyState('🎒','Belum ada siswa','Tambahkan siswa baru di sini'); return; }
+  box.innerHTML = list.map(s=>`
+    <div class="card" style="padding:12px 14px;display:flex;align-items:center;gap:12px;">
+      <div class="pick-avatar">🧒</div>
+      <div style="flex:1;min-width:0;">
+        <div class="pick-name">${s.nama}</div>
+        <div class="pick-sub">${s.kelas?.nama||'Belum ada kelas'} ${s.nisn?'· NISN '+s.nisn:''}</div>
+        <div class="copy-token mt8"><span>${s.parent_token||'—'}</span><button class="btn-sm btn-outline btn" onclick="copyText('${s.parent_token||''}')">Salin</button></div>
+      </div>
+      <button class="btn-sm btn-outline btn" onclick="openSiswaForm('${s.id}')">Edit</button>
+    </div>`).join('');
+}
+function emptyState(emoji,title,desc){
+  return `<div class="empty"><div class="empty-emoji">${emoji}</div><div class="empty-title">${title}</div><div class="empty-desc">${desc}</div></div>`;
+}
+function openSiswaForm(id){
+  document.getElementById('siswaModal').classList.remove('hidden');
+  document.getElementById('fTokenWrap').classList.toggle('hidden', !id);
+  if(id){
+    const s = siswaAll.find(x=>String(x.id)===String(id));
+    document.getElementById('siswaModalTitle').textContent='Edit Siswa';
+    document.getElementById('siswaEditId').value = s.id;
+    document.getElementById('fNama').value = s.nama;
+    document.getElementById('fKelas').value = s.kelas_id||'';
+    document.getElementById('fNisn').value = s.nisn||'';
+    document.getElementById('fOrtu').value = s.nama_ortu||'';
+    document.getElementById('fHpOrtu').value = s.hp_ortu||'';
+    document.getElementById('fTokenVal').textContent = s.parent_token||'—';
+    document.getElementById('fNfcUid').value = s.nfc_uid||'';
+    document.getElementById('fNfcVal').textContent = s.nfc_uid ? 'Terdaftar: '+s.nfc_uid : 'Belum ada kartu';
+  }else{
+    document.getElementById('siswaModalTitle').textContent='Tambah Siswa';
+    document.getElementById('siswaEditId').value='';
+    ['fNama','fNisn','fOrtu','fHpOrtu','fNfcUid'].forEach(id=>document.getElementById(id).value='');
+    document.getElementById('fNfcVal').textContent = 'Belum ada kartu';
+  }
+}
+function closeSiswaForm(){ document.getElementById('siswaModal').classList.add('hidden'); }
+function copyToken(){ copyText(document.getElementById('fTokenVal').textContent); }
+function copyText(t){ navigator.clipboard?.writeText(t); toast('Tersalin: '+t); }
+
+async function saveSiswa(){
+  const id = document.getElementById('siswaEditId').value;
+  const payload = {
+    nama: document.getElementById('fNama').value.trim(),
+    kelas_id: document.getElementById('fKelas').value || null,
+    nisn: document.getElementById('fNisn').value.trim() || null,
+    nama_ortu: document.getElementById('fOrtu').value.trim() || null,
+    hp_ortu: document.getElementById('fHpOrtu').value.trim() || null,
+    nfc_uid: document.getElementById('fNfcUid').value.trim() || null,
+  };
+  if(!payload.nama){ toast('Nama wajib diisi'); return; }
+  try{
+    if(id){
+      await sb('siswa?id=eq.'+id, {method:'PATCH', body:JSON.stringify(payload)});
+      toast('Data siswa diperbarui');
+    }else{
+      payload.parent_token = genToken();
+      const res = await sb('siswa', {method:'POST', body:JSON.stringify(payload)});
+      toast('Siswa ditambahkan. Kode ortu: '+payload.parent_token);
+    }
+    closeSiswaForm();
+    await loadSiswa(); renderSiswaList(); renderPresensiList();
+  }catch(e){ toast('Gagal menyimpan: '+e.message); }
+}
+
+/* ============================================================
+   PRESENSI (cek-in / cek-out) — cubby UI
+============================================================ */
+let presensiHariIni = {}; // siswa_id -> row
+
+async function loadPresensiHariIni(){
+  const rows = await sb('absensi_tk?tanggal=eq.'+todayKey()+'&select=*');
+  presensiHariIni = {};
+  rows.forEach(r=> presensiHariIni[r.siswa_id] = r);
+}
+async function renderPresensiList(){
+  await loadPresensiHariIni();
+  const q = (document.getElementById('presensiSearch').value||'').toLowerCase();
+  let list = siswaAll;
+  if(currentGuru.peran!=='admin') list = list.filter(s=>s.kelas_id===currentGuru.kelas_id);
+  if(activePresensiKelas!=='all') list = list.filter(s=>String(s.kelas_id)===String(activePresensiKelas));
+  if(q) list = list.filter(s=>s.nama.toLowerCase().includes(q));
+  const box = document.getElementById('presensiList');
+  if(!list.length){ box.innerHTML = emptyState('🐣','Belum ada siswa di kelas ini',''); return; }
+  box.innerHTML = list.map(s=>{
+    const r = presensiHariIni[s.id];
+    const state = !r || (!r.jam_masuk) ? 'closed' : (r.jam_masuk && !r.jam_pulang) ? 'open' : 'done';
+    const cubbyClass = state==='open' ? 'open' : state==='done' ? 'done' : '';
+    const meta = state==='closed' ? 'Belum datang' : state==='open' ? 'Masuk '+fmtTime(r.jam_masuk) : `Masuk ${fmtTime(r.jam_masuk)} · Pulang ${fmtTime(r.jam_pulang)}`;
+    let actionBtn = '';
+    if(state==='closed') actionBtn = `<button class="btn btn-sm btn-mint" onclick="checkIn('${s.id}')">Check-In</button>`;
+    else if(state==='open') actionBtn = `<button class="btn btn-sm btn-primary" onclick="checkOut('${s.id}')">Check-Out</button>`;
+    else actionBtn = `<span class="chip chip-ok">Selesai ✓</span>`;
+    return `<div class="cubby-row">
+      <div class="cubby ${cubbyClass}"><div class="cubby-door"></div><span>🧒</span></div>
+      <div class="cubby-info"><div class="cubby-name">${s.nama}</div><div class="cubby-meta">${meta}</div></div>
+      <div class="cubby-action">${actionBtn}</div>
+    </div>`;
+  }).join('');
+}
+async function checkIn(siswaId){
+  const s = siswaAll.find(x=>String(x.id)===String(siswaId));
+  const lateCut = '08:00';
+  const status = nowTime() > lateCut ? 'terlambat' : 'hadir';
+  try{
+    await sb('absensi_tk', {method:'POST', headers:{'Prefer':'resolution=merge-duplicates,return=minimal'}, body:JSON.stringify({
+      siswa_id: s.id, kelas_id: s.kelas_id, tanggal: todayKey(), jam_masuk: nowTime(), status
+    })});
+    toast(s.nama+' berhasil Check-In'); renderPresensiList();
+  }catch(e){ toast('Gagal: '+e.message); }
+}
+async function checkOut(siswaId){
+  const s = siswaAll.find(x=>String(x.id)===String(siswaId));
+  try{
+    await sb('absensi_tk?siswa_id=eq.'+siswaId+'&tanggal=eq.'+todayKey(), {method:'PATCH', body:JSON.stringify({ jam_pulang: nowTime() })});
+    toast(s.nama+' berhasil Check-Out'); renderPresensiList();
+  }catch(e){ toast('Gagal: '+e.message); }
+}
+
+/* ============================================================
+   NFC (Web NFC API — didukung Chrome di Android). Di iOS/desktop
+   otomatis fallback ke pencarian & tombol manual.
+============================================================ */
+function nfcSupported(){ return 'NDEFReader' in window; }
+
+async function tapToRegisterNfc(){
+  if(!nfcSupported()){ toast('NFC tidak didukung di browser ini. Gunakan Chrome di Android.'); return; }
+  try{
+    const reader = new NDEFReader();
+    await reader.scan();
+    toast('Dekatkan kartu NFC sekarang...');
+    reader.onreading = (event)=>{
+      const uid = event.serialNumber || Date.now().toString(16);
+      document.getElementById('fNfcUid').value = uid;
+      document.getElementById('fNfcVal').textContent = 'Terdaftar: '+uid;
+      toast('Kartu terbaca: '+uid);
+    };
+  }catch(e){ toast('Gagal membaca NFC: '+e.message); }
+}
+
+async function scanNfcPresensi(){
+  if(!nfcSupported()){
+    document.getElementById('nfcStatus').textContent = 'NFC tidak didukung di browser ini — gunakan pencarian manual di bawah.';
+    toast('NFC hanya didukung Chrome di Android');
+    return;
+  }
+  try{
+    const reader = new NDEFReader();
+    await reader.scan();
+    document.getElementById('nfcStatus').textContent = '📶 Menunggu kartu... dekatkan ke belakang HP';
+    reader.onreading = async (event)=>{
+      const uid = event.serialNumber;
+      const s = siswaAll.find(x=>x.nfc_uid === uid);
+      if(!s){ document.getElementById('nfcStatus').textContent = 'Kartu tidak dikenali. Daftarkan dulu lewat menu Siswa.'; return; }
+      await loadPresensiHariIni();
+      const r = presensiHariIni[s.id];
+      if(!r || !r.jam_masuk){ await checkIn(s.id); }
+      else if(!r.jam_pulang){ await checkOut(s.id); }
+      else { toast(s.nama+' sudah selesai presensi hari ini'); }
+      document.getElementById('nfcStatus').textContent = 'Kartu terakhir: '+s.nama;
+    };
+  }catch(e){ toast('Gagal mengaktifkan NFC: '+e.message); }
+}
+
+/* ============================================================
+   CHAT (per kelas, realtime via Supabase Realtime)
+============================================================ */
+function setupChatForCurrentGuru(){
+  const isAdmin = currentGuru.peran==='admin';
+  activeChatKelasId = isAdmin ? 'broadcast' : currentGuru.kelas_id;
+  loadChatMessages();
+  subscribeChat();
+}
+async function loadChatMessages(){
+  let filter = activeChatKelasId==='broadcast' ? 'kelas_id=is.null' : 'kelas_id=eq.'+activeChatKelasId;
+  const rows = await sb('pesan?'+filter+'&select=*&order=created_at.asc&limit=200');
+  renderChat(rows);
+}
+function renderChat(rows){
+  const box = document.getElementById('chatScroll');
+  if(!rows.length){ box.innerHTML = emptyState('💬','Belum ada pesan','Mulai percakapan dengan orang tua di kelas ini'); return; }
+  box.innerHTML = rows.map(m=>{
+    const mine = m.pengirim_tipe==='guru' || m.pengirim_tipe==='admin';
+    const cls = m.pengirim_tipe==='admin' && activeChatKelasId==='broadcast' ? 'bubble-admin' : (mine?'bubble-out':'bubble-in');
+    const img = m.foto_url ? `<img src="${m.foto_url}">` : '';
+    const time = new Date(m.created_at).toLocaleTimeString('id-ID',{hour:'2-digit',minute:'2-digit'});
+    return `<div class="bubble ${cls}">
+      <div class="bubble-sender">${m.pengirim_nama}${m.pengirim_tipe==='admin'?' · Admin':''}</div>
+      ${m.isi_teks?`<div>${escapeHtml(m.isi_teks)}</div>`:''}${img}
+      <div class="bubble-time">${time}</div>
+    </div>`;
+  }).join('');
+  scrollChatBottom();
+}
+function scrollChatBottom(){ const b=document.getElementById('chatScroll'); if(b) b.scrollTop = b.scrollHeight; }
+function escapeHtml(s){ return s.replace(/[&<>"]/g, c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c])); }
+
+function subscribeChat(){
+  if(!sbClient) return;
+  if(chatChannel) sbClient.removeChannel(chatChannel);
+  chatChannel = sbClient.channel('pesan-'+activeChatKelasId)
+    .on('postgres_changes', {event:'INSERT', schema:'public', table:'pesan'}, payload=>{
+      const row = payload.new;
+      const matches = activeChatKelasId==='broadcast' ? row.kelas_id===null : String(row.kelas_id)===String(activeChatKelasId);
+      if(matches) loadChatMessages();
+    }).subscribe();
+}
+let pendingPhoto = null;
+function handleChatPhoto(ev){
+  const file = ev.target.files[0]; if(!file) return;
+  const reader = new FileReader();
+  reader.onload = ()=>{
+    const img = new Image();
+    img.onload = ()=>{
+      const canvas = document.createElement('canvas');
+      const maxW = 640; const scale = Math.min(1, maxW/img.width);
+      canvas.width = img.width*scale; canvas.height = img.height*scale;
+      canvas.getContext('2d').drawImage(img,0,0,canvas.width,canvas.height);
+      pendingPhoto = canvas.toDataURL('image/jpeg', 0.7);
+      sendChatMessage();
+    };
+    img.src = reader.result;
+  };
+  reader.readAsDataURL(file);
+}
+async function sendChatMessage(){
+  const text = document.getElementById('chatTextInput').value.trim();
+  if(!text && !pendingPhoto) return;
+  const kelasId = activeChatKelasId==='broadcast' ? null : activeChatKelasId;
+  try{
+    await sb('pesan', {method:'POST', body:JSON.stringify({
+      kelas_id: kelasId,
+      pengirim_tipe: currentGuru.peran==='admin' && kelasId===null ? 'admin' : (currentGuru.peran==='admin'?'admin':'guru'),
+      pengirim_nama: currentGuru.nama,
+      isi_teks: text || null,
+      foto_url: pendingPhoto || null
+    })});
+    document.getElementById('chatTextInput').value=''; pendingPhoto=null;
+    loadChatMessages();
+  }catch(e){ toast('Gagal kirim: '+e.message); }
+}
+
+/* ============================================================
+   REKAP
+============================================================ */
+async function loadRekap(){
+  const from = document.getElementById('rekapFrom').value;
+  const to = document.getElementById('rekapTo').value;
+  let filter = 'absensi_tk?tanggal=gte.'+from+'&tanggal=lte.'+to+'&select=siswa_id,status,tanggal';
+  const rows = await sb(filter);
+  const perSiswa = {};
+  rows.forEach(r=>{ perSiswa[r.siswa_id] = perSiswa[r.siswa_id]||{hadir:0,terlambat:0,izin:0,sakit:0,alpa:0}; if(perSiswa[r.siswa_id][r.status]!==undefined) perSiswa[r.siswa_id][r.status]++; });
+  let list = siswaAll;
+  if(currentGuru.peran!=='admin') list = list.filter(s=>s.kelas_id===currentGuru.kelas_id);
+  const box = document.getElementById('rekapResult');
+  if(!list.length){ box.innerHTML = emptyState('📊','Tidak ada data',''); return; }
+  box.innerHTML = list.map(s=>{
+    const d = perSiswa[s.id] || {hadir:0,terlambat:0,izin:0,sakit:0,alpa:0};
+    return `<div style="padding:10px 0;border-bottom:1px solid var(--border);">
+      <div style="font-weight:700;">${s.nama}</div>
+      <div class="row mt8">
+        <span class="chip chip-ok">Hadir ${d.hadir}</span>
+        <span class="chip chip-warn">Telat ${d.terlambat}</span>
+        <span class="chip chip-bad">Alpa ${d.alpa}</span>
+      </div>
+    </div>`;
+  }).join('');
+}
+
+/* ============================================================
+   KELOLA KELAS & GURU (Pengaturan)
+============================================================ */
+function renderSettingLists(){
+  document.getElementById('kelasManageList').innerHTML = kelasAll.map(k=>`
+    <div class="row" style="align-items:center;margin-bottom:8px;">
+      <span class="chip chip-kelas" style="flex:1;">${k.ikon||''} ${k.nama}</span>
+    </div>`).join('') || '<p class="text-muted">Belum ada kelas</p>';
+  document.getElementById('guruManageList').innerHTML = guruAll.map(g=>`
+    <div class="row" style="align-items:center;margin-bottom:8px;">
+      <span class="chip chip-kelas" style="flex:1;">${g.nama} · ${g.peran==='admin'?'Admin':(g.kelas?.nama||'-')}</span>
+    </div>`).join('') || '<p class="text-muted">Belum ada guru</p>';
+  document.getElementById('newGuruPeran').onchange = e=>{
+    document.getElementById('newGuruKelasWrap').classList.toggle('hidden', e.target.value==='admin');
+  };
+}
+async function addKelas(){
+  const nama = document.getElementById('newKelasNama').value.trim();
+  if(!nama){ toast('Nama kelas wajib diisi'); return; }
+  const icons=['🐰','🦋','🐥','🐢','🐻','🐼','🐸','🦁'];
+  const colors=['#FF7B54','#5B9BD5','#29B6A8','#9B87F5','#FFC857'];
+  await sb('kelas', {method:'POST', body:JSON.stringify({nama, ikon:icons[kelasAll.length%icons.length], warna:colors[kelasAll.length%colors.length]})});
+  document.getElementById('newKelasNama').value='';
+  await loadKelas(); renderKelasTabs(); renderSettingLists();
+  toast('Kelas ditambahkan');
+}
+async function addGuru(){
+  const nama = document.getElementById('newGuruNama').value.trim();
+  const peran = document.getElementById('newGuruPeran').value;
+  const kelas_id = peran==='admin' ? null : (document.getElementById('newGuruKelas').value||null);
+  const pin = document.getElementById('newGuruPin').value.trim();
+  if(!nama || pin.length!==4){ toast('Lengkapi nama & PIN 4 digit'); return; }
+  await sb('guru', {method:'POST', body:JSON.stringify({nama, peran, kelas_id, pin})});
+  document.getElementById('newGuruNama').value=''; document.getElementById('newGuruPin').value='';
+  await loadGuruForLogin(); renderSettingLists();
+  toast('Guru ditambahkan');
+}
+
+/* ============================================================
+   INIT
+============================================================ */
+(async function init(){
+  applyBrandingSafe();
+  if(initSupabase()){
+    await loadGuruForLogin();
+    if(currentGuru){
+      // validasi ulang guru masih ada
+      await loadKelas(); await loadSiswa();
+      const found = (await sb('guru?id=eq.'+currentGuru.id+'&select=*,kelas(id,nama,ikon,warna)'))[0];
+      if(found){ currentGuru=found; enterApp(); }
+    }
+  }
+})();
+function applyBrandingSafe(){
+  const name = branding.appName || 'AbsensiTK';
+  const sub = branding.appSub || 'Presensi & Komunikasi Sekolah TK';
+  document.getElementById('loginAppName').textContent = name;
+  document.getElementById('loginAppSub').textContent = sub;
+  document.title = name + ' — Guru & Admin';
+}
+</script>
+</body>
+</html>
