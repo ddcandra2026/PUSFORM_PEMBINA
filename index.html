@@ -450,7 +450,8 @@ const DEFAULT_CFG = {
   url: 'https://syncsygrcolsqygvewcu.supabase.co',
   key: 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InN5bmNzeWdyY29sc3F5Z3Zld2N1Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODQ2NTc0OTcsImV4cCI6MjEwMDIzMzQ5N30.2mnAgOnNOYLvr-nwgHdQbTnRN_t9MEN-PtuM1kfBysc'
 };
-let cfg = JSON.parse(localStorage.getItem('tkCfg') || 'null') || DEFAULT_CFG;
+let savedCfg = JSON.parse(localStorage.getItem('tkCfg') || 'null');
+let cfg = (savedCfg && savedCfg.url && savedCfg.key) ? savedCfg : DEFAULT_CFG;
 let branding = JSON.parse(localStorage.getItem('tkBranding') || '{}');
 let sbClient = null;
 let currentGuru = JSON.parse(sessionStorage.getItem('tkGuruSession') || 'null');
@@ -471,7 +472,9 @@ function toast(msg){
 
 function initSupabase(){
   if(!cfg.url || !cfg.key) return false;
-  sbClient = supabase.createClient(cfg.url, cfg.key);
+  if(sbClient && sbClient._cfgKey === cfg.url+cfg.key) return true;
+  sbClient = supabase.createClient(cfg.url, cfg.key, { auth: { persistSession: false } });
+  sbClient._cfgKey = cfg.url+cfg.key;
   return true;
 }
 
