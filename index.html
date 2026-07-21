@@ -444,7 +444,13 @@ main{flex:1;padding:16px 16px 100px;position:relative;z-index:1;}
 /* ============================================================
    STATE & KONEKSI
 ============================================================ */
-let cfg = JSON.parse(localStorage.getItem('tkCfg') || '{}');
+// Koneksi default ke project Supabase "NFC Presensi". Bisa diganti
+// kapan saja lewat halaman ⚙️ Pengaturan Koneksi (akan menimpa default ini).
+const DEFAULT_CFG = {
+  url: 'https://syncsygrcolsqygvewcu.supabase.co',
+  key: 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InN5bmNzeWdyY29sc3F5Z3Zld2N1Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODQ2NTc0OTcsImV4cCI6MjEwMDIzMzQ5N30.2mnAgOnNOYLvr-nwgHdQbTnRN_t9MEN-PtuM1kfBysc'
+};
+let cfg = JSON.parse(localStorage.getItem('tkCfg') || 'null') || DEFAULT_CFG;
 let branding = JSON.parse(localStorage.getItem('tkBranding') || '{}');
 let sbClient = null;
 let currentGuru = JSON.parse(sessionStorage.getItem('tkGuruSession') || 'null');
