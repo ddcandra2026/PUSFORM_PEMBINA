@@ -571,8 +571,9 @@ async function sb(path, opts={}){
     }
   });
   if(!res.ok){ const t = await res.text(); throw new Error('DB error: '+t); }
-  if(res.status === 204) return [];
-  return res.json();
+  const text = await res.text();
+  if(!text) return [];
+  try{ return JSON.parse(text); }catch(e){ return []; }
 }
 
 function todayKey(){ return new Date().toISOString().slice(0,10); }
