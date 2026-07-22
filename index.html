@@ -284,9 +284,6 @@ main{flex:1;padding:16px 16px 100px;position:relative;z-index:1;}
       <select class="form-select" id="loginGuruSelect"></select>
     </div>
     <button class="btn btn-primary btn-block" onclick="startPinEntry()">Lanjutkan →</button>
-    <div style="text-align:center;margin-top:14px;">
-      <button class="btn-link-subtle" onclick="showConnectSetup()">⚙️ Ubah koneksi database</button>
-    </div>
   </div>
 
   <div class="login-card hidden" id="loginStep2">
@@ -336,10 +333,6 @@ main{flex:1;padding:16px 16px 100px;position:relative;z-index:1;}
           <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"/><path d="M16 17l5-5-5-5"/><path d="M21 12H9"/></svg>
         </button>
       </div>
-    </div>
-    <div class="hdr-guru-row">
-      <div class="hdr-avatar">👤</div>
-      <div id="hdrGuruName">—</div>
     </div>
     <div class="notif-panel hidden" id="notifPanel"></div>
   </div>
@@ -445,6 +438,14 @@ main{flex:1;padding:16px 16px 100px;position:relative;z-index:1;}
     <div class="screen" id="screenSetting">
       <div class="section-title">Pengaturan ⚙️</div>
 
+      <div class="card" style="display:flex;align-items:center;gap:12px;">
+        <div class="hdr-avatar" style="width:44px;height:44px;font-size:19px;">👤</div>
+        <div style="flex:1;">
+          <div style="font-weight:800;font-size:15px;" id="setGuruName">—</div>
+          <div class="text-muted" id="setGuruRole">—</div>
+        </div>
+      </div>
+
       <div class="card" id="waliKelasNotice" style="display:none;">
         <div class="empty">
           <div class="empty-emoji">🔒</div>
@@ -532,7 +533,7 @@ main{flex:1;padding:16px 16px 100px;position:relative;z-index:1;}
     </div>
     <div class="nav-item" data-screen="Setting" style="--navc:var(--slate);" onclick="switchScreen('Setting')">
       <svg viewBox="0 0 24 24" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.7 1.7 0 0 0 .3 1.9l.1.1a2 2 0 1 1-2.8 2.8l-.1-.1a1.7 1.7 0 0 0-1.9-.3 1.7 1.7 0 0 0-1 1.5V21a2 2 0 1 1-4 0v-.1a1.7 1.7 0 0 0-1-1.6 1.7 1.7 0 0 0-1.9.3l-.1.1a2 2 0 1 1-2.8-2.8l.1-.1a1.7 1.7 0 0 0 .3-1.9 1.7 1.7 0 0 0-1.5-1H3a2 2 0 1 1 0-4h.1a1.7 1.7 0 0 0 1.6-1 1.7 1.7 0 0 0-.3-1.9l-.1-.1a2 2 0 1 1 2.8-2.8l.1.1a1.7 1.7 0 0 0 1.9.3H9a1.7 1.7 0 0 0 1-1.5V3a2 2 0 1 1 4 0v.1a1.7 1.7 0 0 0 1 1.5 1.7 1.7 0 0 0 1.9-.3l.1-.1a2 2 0 1 1 2.8 2.8l-.1.1a1.7 1.7 0 0 0-.3 1.9V9a1.7 1.7 0 0 0 1.5 1H21a2 2 0 1 1 0 4h-.1a1.7 1.7 0 0 0-1.5 1z"/></svg>
-      <span>Atur</span>
+      <span>Setting</span>
     </div>
   </div>
 </div>
@@ -745,7 +746,8 @@ function logout(){
 async function enterApp(){
   document.getElementById('loginScreen').classList.add('hidden');
   document.getElementById('app').classList.remove('hidden');
-  document.getElementById('hdrGuruName').textContent = currentGuru.nama + (currentGuru.peran==='admin' ? ' · Admin' : '');
+  document.getElementById('setGuruName').textContent = currentGuru.nama;
+  document.getElementById('setGuruRole').textContent = currentGuru.peran==='admin' ? 'Admin' : ('Wali Kelas' + (currentGuru.kelas?.nama ? ' · '+currentGuru.kelas.nama : ''));
   applyBranding();
   await loadKelas();
   await loadSiswa();
