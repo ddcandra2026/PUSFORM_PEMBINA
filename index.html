@@ -65,19 +65,42 @@ input,select,textarea{font-family:inherit;color:inherit}
   position:sticky;top:0;z-index:90;
   background:rgba(255,249,242,0.92);backdrop-filter:blur(14px);
   border-bottom:1px solid var(--border);
-  padding:12px 16px;display:flex;align-items:center;justify-content:space-between;
+  padding:12px 16px;position:relative;
 }
-.hdr-brand{display:flex;align-items:center;gap:10px;}
+.hdr-top{display:flex;align-items:center;justify-content:space-between;gap:10px;}
+.hdr-brand{display:flex;align-items:center;gap:10px;min-width:0;}
 .hdr-logo{
   width:42px;height:42px;border-radius:14px;
   background:linear-gradient(135deg,var(--coral),var(--yellow));
   display:flex;align-items:center;justify-content:center;font-size:22px;
-  box-shadow:0 4px 14px rgba(255,123,84,0.35);flex-shrink:0;
+  box-shadow:0 4px 14px rgba(255,123,84,0.35);flex-shrink:0;overflow:hidden;
 }
-.hdr-title{font-family:var(--display);font-weight:700;font-size:19px;line-height:1.1;}
-.hdr-sub{font-size:11.5px;color:var(--text2);margin-top:2px;font-weight:600;}
-.hdr-user{display:flex;align-items:center;gap:8px;font-size:12px;color:var(--text2);font-weight:600;}
-.hdr-avatar{width:30px;height:30px;border-radius:50%;background:var(--surface2);display:flex;align-items:center;justify-content:center;font-size:14px;border:1px solid var(--border2);}
+.hdr-title{font-family:var(--display);font-weight:700;font-size:18px;line-height:1.15;}
+.hdr-sub{font-size:11px;color:var(--text2);margin-top:1px;font-weight:600;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;}
+.hdr-actions{display:flex;align-items:center;gap:8px;flex-shrink:0;}
+.icon-btn-hdr{
+  width:38px;height:38px;border-radius:50%;background:var(--surface2);border:1.5px solid var(--border2);
+  display:flex;align-items:center;justify-content:center;flex-shrink:0;color:var(--text);position:relative;
+}
+.icon-btn-hdr svg{width:19px;height:19px;}
+.icon-btn-hdr:active{background:var(--border2);}
+.notif-dot{position:absolute;top:6px;right:7px;width:9px;height:9px;border-radius:50%;background:var(--red);border:1.5px solid var(--bg);}
+.hdr-guru-row{display:flex;align-items:center;gap:7px;margin-top:9px;font-size:12px;color:var(--text2);font-weight:600;}
+.hdr-avatar{width:24px;height:24px;border-radius:50%;background:var(--surface2);display:flex;align-items:center;justify-content:center;font-size:12px;border:1px solid var(--border2);flex-shrink:0;}
+.notif-panel{
+  position:absolute;top:100%;right:16px;margin-top:8px;width:min(320px,calc(100% - 32px));
+  background:var(--surface);border:1px solid var(--border);border-radius:16px;
+  box-shadow:0 12px 32px rgba(43,33,64,0.14);overflow:hidden;z-index:95;
+}
+.notif-item{display:flex;align-items:center;gap:10px;padding:13px 15px;border-bottom:1px solid var(--border);cursor:pointer;}
+.notif-item:last-child{border-bottom:none;}
+.notif-item:active{background:var(--surface2);}
+.notif-icon{width:32px;height:32px;border-radius:9px;display:flex;align-items:center;justify-content:center;font-size:15px;flex-shrink:0;}
+.notif-text{flex:1;min-width:0;}
+.notif-title{font-weight:700;font-size:13px;}
+.notif-sub{font-size:11px;color:var(--text2);}
+.notif-count{background:var(--coral);color:#fff;font-size:10.5px;font-weight:800;border-radius:100px;padding:2px 7px;flex-shrink:0;}
+.notif-empty{padding:20px;text-align:center;color:var(--text2);font-size:12.5px;}
 
 /* MAIN */
 main{flex:1;padding:16px 16px 100px;position:relative;z-index:1;}
@@ -217,6 +240,13 @@ main{flex:1;padding:16px 16px 100px;position:relative;z-index:1;}
 .logo-preview{width:60px;height:60px;border-radius:16px;background:var(--surface2);border:1.5px dashed var(--border2);display:flex;align-items:center;justify-content:center;font-size:24px;overflow:hidden;flex-shrink:0;}
 .logo-preview img{width:100%;height:100%;object-fit:cover;}
 .nfc-icon{width:20px;height:20px;}
+.btn-link-subtle{font-size:11.5px;color:var(--muted);font-weight:600;text-decoration:underline;text-underline-offset:2px;}
+.theme-swatch-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:14px;}
+.theme-swatch-item{display:flex;flex-direction:column;align-items:center;gap:5px;cursor:pointer;}
+.theme-swatch{width:100%;aspect-ratio:1;border-radius:14px;display:flex;align-items:center;justify-content:center;border:2.5px solid transparent;position:relative;}
+.theme-swatch.selected{border-color:var(--text);}
+.theme-swatch.selected::after{content:'✓';color:#fff;font-weight:900;font-size:18px;text-shadow:0 1px 3px rgba(0,0,0,0.3);}
+.theme-swatch-label{font-size:10.5px;font-weight:700;color:var(--text2);text-align:center;}
 .copy-token{font-family:var(--mono);font-weight:700;background:var(--bg2);border:1.5px dashed var(--border2);border-radius:10px;padding:8px 12px;display:flex;align-items:center;justify-content:space-between;gap:8px;font-size:13px;}
 .hist-row{display:flex;align-items:center;gap:12px;padding:12px 4px;border-bottom:1px solid var(--border);}
 .hist-row:last-child{border-bottom:none;}
@@ -245,8 +275,8 @@ main{flex:1;padding:16px 16px 100px;position:relative;z-index:1;}
   <div class="login-sub" id="loginAppSub">Presensi &amp; Komunikasi Sekolah TK</div>
 
   <div class="login-card" id="loginStep1">
-    <div class="form-group">
-      <label class="form-label">Belum konek Supabase? Buka Pengaturan dulu</label>
+    <div class="form-group hidden" id="connectPromptBox">
+      <label class="form-label" id="connectPromptLabel">Belum konek Supabase? Buka Pengaturan dulu</label>
       <button class="btn btn-outline btn-block" onclick="showConnectSetup()">⚙️ Pengaturan Koneksi Database</button>
     </div>
     <div class="form-group">
@@ -254,6 +284,9 @@ main{flex:1;padding:16px 16px 100px;position:relative;z-index:1;}
       <select class="form-select" id="loginGuruSelect"></select>
     </div>
     <button class="btn btn-primary btn-block" onclick="startPinEntry()">Lanjutkan →</button>
+    <div style="text-align:center;margin-top:14px;">
+      <button class="btn-link-subtle" onclick="showConnectSetup()">⚙️ Ubah koneksi database</button>
+    </div>
   </div>
 
   <div class="login-card hidden" id="loginStep2">
@@ -286,20 +319,29 @@ main{flex:1;padding:16px 16px 100px;position:relative;z-index:1;}
 <!-- ============ APP ============ -->
 <div id="app" class="hidden">
   <div class="hdr">
-    <div class="hdr-brand">
-      <div class="hdr-logo" id="hdrLogo">🧸</div>
-      <div>
-        <div class="hdr-title" id="hdrAppName">AbsensiTK</div>
-        <div class="hdr-sub" id="hdrAppSub">Guru &amp; Admin</div>
+    <div class="hdr-top">
+      <div class="hdr-brand">
+        <div class="hdr-logo" id="hdrLogo">🧸</div>
+        <div>
+          <div class="hdr-title" id="hdrAppName">AbsensiTK</div>
+          <div class="hdr-sub" id="hdrAppSub">Guru &amp; Admin</div>
+        </div>
+      </div>
+      <div class="hdr-actions">
+        <button class="icon-btn-hdr" id="bellBtn" onclick="toggleNotifPanel()" title="Notifikasi">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M6 8a6 6 0 0 1 12 0c0 7 3 9 3 9H3s3-2 3-9"/><path d="M13.73 21a2 2 0 0 1-3.46 0"/></svg>
+          <span class="notif-dot hidden" id="notifDot"></span>
+        </button>
+        <button class="icon-btn-hdr" onclick="confirmLogout()" title="Keluar">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"/><path d="M16 17l5-5-5-5"/><path d="M21 12H9"/></svg>
+        </button>
       </div>
     </div>
-    <div class="hdr-user">
+    <div class="hdr-guru-row">
       <div class="hdr-avatar">👤</div>
-      <div>
-        <div id="hdrGuruName">—</div>
-      </div>
-      <button class="btn-sm btn-outline btn" onclick="logout()" style="margin-left:6px;">Keluar</button>
+      <div id="hdrGuruName">—</div>
     </div>
+    <div class="notif-panel hidden" id="notifPanel"></div>
   </div>
 
   <main>
@@ -430,6 +472,12 @@ main{flex:1;padding:16px 16px 100px;position:relative;z-index:1;}
         </div>
 
         <div class="card">
+          <div class="card-title">🎨 Tema Warna</div>
+          <div class="text-muted" style="margin-bottom:12px;">Pilih warna utama aplikasi. Tersinkron ke semua guru &amp; orang tua.</div>
+          <div class="theme-swatch-grid" id="themeSwatchGrid"></div>
+        </div>
+
+        <div class="card">
           <div class="card-title">🐣 Kelola Kelas</div>
           <div id="kelasManageList"></div>
           <div class="row mt12">
@@ -543,6 +591,11 @@ let activeSiswaKelas = 'all';
 let activeChatKelasId = null;
 let chatChannel = null;
 
+// ===== Notifikasi =====
+let notifChatChannel = null, notifBroadcastChannel = null, notifPresensiChannel = null;
+let notifCounts = { chat:0, broadcast:0, presensi:0 };
+let notifLastRead = {};
+
 function toast(msg){
   const t = document.getElementById('toast');
   t.textContent = msg; t.classList.add('show');
@@ -623,7 +676,19 @@ async function loadGuruForLogin(){
     guruAll = await sb('guru?select=*,kelas(id,nama,ikon,warna)&aktif=eq.true&order=nama');
     const sel = document.getElementById('loginGuruSelect');
     sel.innerHTML = guruAll.map(g=>`<option value="${g.id}">${g.nama} ${g.peran==='admin'?'(Admin)':'— '+(g.kelas?.nama||'')}</option>`).join('');
-  }catch(e){ toast('Gagal memuat guru. Cek koneksi & skema DB.'); }
+    if(!guruAll.length){
+      document.getElementById('connectPromptLabel').textContent = 'Belum ada guru terdaftar. Tambahkan lewat SQL Editor atau cek koneksi.';
+      document.getElementById('connectPromptBox').classList.remove('hidden');
+    } else {
+      document.getElementById('connectPromptBox').classList.add('hidden');
+    }
+    return true;
+  }catch(e){
+    toast('Gagal memuat guru. Cek koneksi & skema DB.');
+    document.getElementById('connectPromptLabel').textContent = 'Gagal tersambung ke database. Cek koneksi Supabase.';
+    document.getElementById('connectPromptBox').classList.remove('hidden');
+    return false;
+  }
 }
 function startPinEntry(){
   const id = document.getElementById('loginGuruSelect').value;
@@ -657,14 +722,21 @@ function submitPin(){
   sessionStorage.setItem('tkGuruSession', JSON.stringify(currentGuru));
   enterApp();
 }
+function confirmLogout(){
+  if(confirm('Yakin ingin keluar?')) logout();
+}
 function logout(){
   sessionStorage.removeItem('tkGuruSession');
   currentGuru = null;
   if(chatChannel) sbClient.removeChannel(chatChannel);
+  if(notifChatChannel) sbClient.removeChannel(notifChatChannel);
+  if(notifBroadcastChannel) sbClient.removeChannel(notifBroadcastChannel);
+  if(notifPresensiChannel) sbClient.removeChannel(notifPresensiChannel);
   document.getElementById('app').classList.add('hidden');
   document.getElementById('loginScreen').classList.remove('hidden');
   document.getElementById('loginStep2').classList.add('hidden');
   document.getElementById('loginStep1').classList.remove('hidden');
+  document.getElementById('notifPanel').classList.add('hidden');
 }
 
 /* ============================================================
@@ -684,6 +756,7 @@ async function enterApp(){
   populateRekapFilters();
   setupBroadcastVisibility();
   loadBroadcasts();
+  setupNotifications();
   renderSettingLists();
   const isAdmin = currentGuru.peran==='admin';
   document.getElementById('adminOnlySettings').style.display = isAdmin ? '' : 'none';
@@ -705,6 +778,8 @@ function applyBranding(){
   document.getElementById('cfgUrl').value = cfg.url||'';
   document.getElementById('cfgKey').value = cfg.key||'';
   renderLogoEverywhere();
+  applyThemeColor();
+  renderThemeSwatches();
 }
 function renderLogoEverywhere(){
   const logoHtml = branding.logo_base64 ? `<img src="${branding.logo_base64}">` : '🧸';
@@ -724,7 +799,9 @@ async function loadBrandingFromDb(){
       app_sub: map.app_sub || '',
       logo_base64: map.logo_base64 || '',
       kop_alamat: map.kop_alamat || '',
-      kop_telp: map.kop_telp || ''
+      kop_telp: map.kop_telp || '',
+      theme_primary: map.theme_primary || '',
+      theme_primary_dk: map.theme_primary_dk || ''
     };
     localStorage.setItem('tkBranding', JSON.stringify(branding));
   }catch(e){ /* pengaturan table belum ada / offline: pakai cache lokal */ }
@@ -747,6 +824,47 @@ async function saveBranding(){
 async function upsertPengaturan(key, value){
   await sb('pengaturan', {method:'POST', headers:{'Prefer':'resolution=merge-duplicates,return=minimal'}, body:JSON.stringify({key, value})});
 }
+
+/* ============================================================
+   TEMA WARNA
+============================================================ */
+const THEME_PRESETS = [
+  { id:'peach',    label:'Peach',    main:'#FF7B54', dk:'#E8623C' },
+  { id:'mint',     label:'Mint',     main:'#29B6A8', dk:'#1F9C90' },
+  { id:'sky',      label:'Sky',      main:'#5B9BD5', dk:'#3F7FB8' },
+  { id:'lavender', label:'Lavender', main:'#9B87F5', dk:'#7A63E0' },
+  { id:'sunny',    label:'Sunny',    main:'#FFB648', dk:'#E89A2C' },
+  { id:'rose',     label:'Rose',     main:'#F0699A', dk:'#D94A80' },
+];
+function applyThemeColor(){
+  const main = branding.theme_primary || '#FF7B54';
+  const dk = branding.theme_primary_dk || '#E8623C';
+  document.documentElement.style.setProperty('--coral', main);
+  document.documentElement.style.setProperty('--coral-dk', dk);
+}
+function renderThemeSwatches(){
+  const grid = document.getElementById('themeSwatchGrid');
+  if(!grid) return;
+  const current = branding.theme_primary || '#FF7B54';
+  grid.innerHTML = THEME_PRESETS.map(p=>`
+    <div class="theme-swatch-item" onclick="selectTheme('${p.id}')">
+      <div class="theme-swatch ${p.main.toLowerCase()===current.toLowerCase()?'selected':''}" style="background:linear-gradient(135deg,${p.main},${p.dk});"></div>
+      <div class="theme-swatch-label">${p.label}</div>
+    </div>`).join('');
+}
+async function selectTheme(id){
+  const p = THEME_PRESETS.find(x=>x.id===id); if(!p) return;
+  branding.theme_primary = p.main; branding.theme_primary_dk = p.dk;
+  applyThemeColor();
+  renderThemeSwatches();
+  localStorage.setItem('tkBranding', JSON.stringify(branding));
+  try{
+    await upsertPengaturan('theme_primary', p.main);
+    await upsertPengaturan('theme_primary_dk', p.dk);
+    toast('Tema warna diubah menjadi '+p.label);
+  }catch(e){ toast('Tersimpan lokal, gagal sinkron: '+e.message); }
+}
+
 function handleLogoUpload(ev){
   const file = ev.target.files[0]; if(!file) return;
   const reader = new FileReader();
@@ -776,6 +894,13 @@ function switchScreen(name){
   document.getElementById('screen'+name).classList.add('active');
   document.querySelectorAll('.nav-item').forEach(n=>n.classList.toggle('active', n.dataset.screen===name));
   if(name==='Chat') scrollChatBottom();
+  const notifMap = { Chat:'chat', Broadcast:'broadcast', Presensi:'presensi' };
+  if(notifMap[name] && notifCounts[notifMap[name]]>0){
+    notifCounts[notifMap[name]] = 0;
+    notifLastRead[notifMap[name]] = new Date().toISOString();
+    saveNotifLastRead();
+    renderNotifDot();
+  }
 }
 
 /* ============================================================
@@ -1232,6 +1357,94 @@ async function loadBroadcasts(){
 }
 
 /* ============================================================
+   NOTIFIKASI (Lonceng) — terhubung ke Chat, Info (broadcast),
+   dan Presensi. Menyimpan waktu terakhir dibaca per-guru di
+   localStorage, lalu berlangganan realtime untuk hitung notifikasi baru.
+============================================================ */
+function notifStorageKey(){ return 'tkNotifRead_'+(currentGuru?.id||'anon'); }
+function loadNotifLastRead(){
+  notifLastRead = JSON.parse(localStorage.getItem(notifStorageKey()) || '{}');
+  if(!notifLastRead.chat) notifLastRead.chat = new Date().toISOString();
+  if(!notifLastRead.broadcast) notifLastRead.broadcast = new Date().toISOString();
+  if(!notifLastRead.presensi) notifLastRead.presensi = new Date().toISOString();
+}
+function saveNotifLastRead(){ localStorage.setItem(notifStorageKey(), JSON.stringify(notifLastRead)); }
+
+function setupNotifications(){
+  loadNotifLastRead();
+  notifCounts = { chat:0, broadcast:0, presensi:0 };
+  const isAdmin = currentGuru.peran==='admin';
+  const myKelasIds = (isAdmin ? kelasAll : kelasAll.filter(k=>k.id===currentGuru.kelas_id)).map(k=>k.id);
+  if(!myKelasIds.length){ renderNotifDot(); return; }
+
+  if(notifChatChannel) sbClient.removeChannel(notifChatChannel);
+  if(notifBroadcastChannel) sbClient.removeChannel(notifBroadcastChannel);
+  if(notifPresensiChannel) sbClient.removeChannel(notifPresensiChannel);
+
+  notifChatChannel = sbClient.channel('notif-pesan')
+    .on('postgres_changes', {event:'INSERT', schema:'public', table:'pesan'}, payload=>{
+      const row = payload.new;
+      if(myKelasIds.includes(row.kelas_id) && row.pengirim_tipe==='ortu'){
+        notifCounts.chat++; renderNotifDot();
+      }
+    }).subscribe();
+
+  notifBroadcastChannel = sbClient.channel('notif-broadcast')
+    .on('postgres_changes', {event:'INSERT', schema:'public', table:'broadcast'}, payload=>{
+      notifCounts.broadcast++; renderNotifDot();
+    }).subscribe();
+
+  notifPresensiChannel = sbClient.channel('notif-absensi')
+    .on('postgres_changes', {event:'INSERT', schema:'public', table:'absensi_tk'}, payload=>{
+      const row = payload.new;
+      if(myKelasIds.includes(row.kelas_id)){ notifCounts.presensi++; renderNotifDot(); }
+    }).subscribe();
+
+  renderNotifDot();
+}
+function renderNotifDot(){
+  const total = notifCounts.chat + notifCounts.broadcast + notifCounts.presensi;
+  document.getElementById('notifDot').classList.toggle('hidden', total===0);
+}
+function toggleNotifPanel(){
+  const panel = document.getElementById('notifPanel');
+  if(!panel.classList.contains('hidden')){ panel.classList.add('hidden'); return; }
+  renderNotifPanel();
+  panel.classList.remove('hidden');
+}
+function renderNotifPanel(){
+  const panel = document.getElementById('notifPanel');
+  const items = [
+    { key:'chat', icon:'💬', color:'var(--coral)', title:'Pesan Baru', sub:'Chat dari orang tua', count:notifCounts.chat, go:'Chat' },
+    { key:'broadcast', icon:'📢', color:'var(--orange)', title:'Pengumuman Baru', sub:'Info dari sekolah', count:notifCounts.broadcast, go:'Broadcast' },
+    { key:'presensi', icon:'✅', color:'var(--mint)', title:'Presensi Baru', sub:'Ada siswa check-in/out', count:notifCounts.presensi, go:'Presensi' },
+  ];
+  const activeItems = items.filter(i=>i.count>0);
+  if(!activeItems.length){ panel.innerHTML = '<div class="notif-empty">🔔 Tidak ada notifikasi baru</div>'; return; }
+  panel.innerHTML = activeItems.map(i=>`
+    <div class="notif-item" onclick="handleNotifClick('${i.key}','${i.go}')">
+      <div class="notif-icon" style="background:${i.color}22;color:${i.color};">${i.icon}</div>
+      <div class="notif-text"><div class="notif-title">${i.title}</div><div class="notif-sub">${i.sub}</div></div>
+      <div class="notif-count">${i.count}</div>
+    </div>`).join('');
+}
+function handleNotifClick(key, screenName){
+  notifCounts[key] = 0;
+  notifLastRead[key] = new Date().toISOString();
+  saveNotifLastRead();
+  renderNotifDot();
+  document.getElementById('notifPanel').classList.add('hidden');
+  switchScreen(screenName);
+}
+document.addEventListener('click', (e)=>{
+  const panel = document.getElementById('notifPanel');
+  const bell = document.getElementById('bellBtn');
+  if(panel && !panel.classList.contains('hidden') && !panel.contains(e.target) && !bell.contains(e.target)){
+    panel.classList.add('hidden');
+  }
+});
+
+/* ============================================================
    KELOLA KELAS & GURU (Pengaturan)
 ============================================================ */
 function renderSettingLists(){
@@ -1278,6 +1491,7 @@ async function addGuru(){
     await loadBrandingFromDb();
     applyBrandingSafe();
     renderLogoEverywhere();
+    applyThemeColor();
     await loadGuruForLogin();
     if(currentGuru){
       // validasi ulang guru masih ada
@@ -1285,6 +1499,9 @@ async function addGuru(){
       const found = (await sb('guru?id=eq.'+currentGuru.id+'&select=*,kelas(id,nama,ikon,warna)'))[0];
       if(found){ currentGuru=found; enterApp(); }
     }
+  } else {
+    document.getElementById('connectPromptLabel').textContent = 'Belum konek Supabase? Buka Pengaturan dulu';
+    document.getElementById('connectPromptBox').classList.remove('hidden');
   }
 })();
 function applyBrandingSafe(){
