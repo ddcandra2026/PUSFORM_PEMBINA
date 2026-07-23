@@ -10,6 +10,7 @@
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link href="https://fonts.googleapis.com/css2?family=Baloo+2:wght@500;600;700;800&family=Plus+Jakarta+Sans:wght@400;500;600;700;800&family=JetBrains+Mono:wght@400;500;700&display=swap" rel="stylesheet">
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
 <style>
 :root{
   --bg:        #FFF9F2;
@@ -443,6 +444,7 @@ main{flex:1;padding:16px 16px 100px;position:relative;z-index:1;}
         <div id="rekapTerlambatList"></div>
       </div>
       <div class="card" id="rekapResult"></div>
+      <button class="btn btn-outline btn-block" onclick="exportRekapPDF()" style="margin-bottom:14px;">📄 Export PDF</button>
     </div>
 
     <!-- ===== BROADCAST ===== -->
@@ -1262,6 +1264,9 @@ function populateRekapSiswaOptions(){
   if(kelasVal!=='all') list = list.filter(s=>String(s.kelas_id)===String(kelasVal));
   document.getElementById('rekapSiswa').innerHTML = '<option value="all">Semua Siswa</option>' + list.map(s=>`<option value="${s.id}">${s.nama}</option>`).join('');
 }
+// ===== Rekap PDF export state =====
+let lastRekapData = null;
+
 async function loadRekap(){
   const bulan = document.getElementById('rekapBulan').value || todayKey().slice(0,7);
   const from = bulan+'-01';
@@ -1290,6 +1295,7 @@ async function loadRekap(){
     const bulanNama=['Jan','Feb','Mar','Apr','Mei','Jun','Jul','Agu','Sep','Okt','Nov','Des'];
     const sum = {hadir:0,terlambat:0,izin:0,sakit:0,alpa:0};
     rows.filter(r=>String(r.siswa_id)===String(siswaVal)).forEach(r=>{ if(sum[r.status]!==undefined) sum[r.status]++; });
+    lastRekapData = { mode:'detail', bulan, siswaNama: s?.nama||'', kelasNama: s?.kelas?.nama || (kelasAll.find(k=>String(k.id)===String(kelasVal))?.nama) || 'Semua Kelas', statusVal, sum, rows: dRows };
     if(!dRows.length){
       box.innerHTML = `<div style="font-weight:800;font-family:var(--display);margin-bottom:10px;">${s?.nama||''}</div>` + emptyState('📭','Tidak ada data presensi','Sesuai filter bulan/status yang dipilih');
       return;
@@ -1333,6 +1339,9 @@ async function loadRekap(){
   let filteredList = list;
   if(statusVal!=='all') filteredList = list.filter(s=> ((perSiswa[s.id]||{})[statusVal]||0) > 0 );
 
+  const kelasNamaForPdf = kelasVal!=='all' ? (kelasAll.find(k=>String(k.id)===String(kelasVal))?.nama||'') : 'Semua Kelas';
+  lastRekapData = { mode:'summary', bulan, kelasNama: kelasNamaForPdf, statusVal, list: filteredList.map(s=>({ nama:s.nama, ...( perSiswa[s.id] || {hadir:0,terlambat:0,izin:0,sakit:0,alpa:0} ) })) };
+
   if(!filteredList.length){ box.innerHTML = emptyState('📊','Tidak ada data sesuai filter',''); return; }
   box.innerHTML = filteredList.map(s=>{
     const d = perSiswa[s.id] || {hadir:0,terlambat:0,izin:0,sakit:0,alpa:0};
@@ -1351,6 +1360,121 @@ async function loadRekap(){
 function jumpToSiswaRekap(siswaId){
   document.getElementById('rekapSiswa').value = siswaId;
   loadRekap();
+}
+
+/* ============================================================
+   EXPORT PDF REKAP
+============================================================ */
+function bulanIndonesia(bulanStr){
+  const nama=['Januari','Februari','Maret','April','Mei','Juni','Juli','Agustus','September','Oktober','November','Desember'];
+  const [y,m] = bulanStr.split('-');
+  return nama[parseInt(m,10)-1] + ' ' + y;
+}
+function statusLabelPdf(v){
+  return {all:'Semua Status',hadir:'Hadir',terlambat:'Terlambat',izin:'Izin',sakit:'Sakit',alpa:'Alpa'}[v] || v;
+}
+function drawPdfHeader(doc, title, subtitleLines){
+  const pageW = doc.internal.pageSize.getWidth();
+  let y = 15;
+  let textX = 15;
+  if(branding.logo_base64){
+    try{ doc.addImage(branding.logo_base64, 'PNG', 15, 10, 16, 16); textX = 35; }catch(e){}
+  }
+  doc.setFont('helvetica','bold'); doc.setFontSize(13); doc.setTextColor(40,30,60);
+  doc.text(branding.app_name || 'AbsensiTK', textX, y+2);
+  doc.setFont('helvetica','normal'); doc.setFontSize(8.5); doc.setTextColor(110,100,128);
+  let subY = y+7;
+  if(branding.kop_alamat){ doc.text(branding.kop_alamat, textX, subY); subY+=4; }
+  if(branding.kop_telp){ doc.text('Telp: '+branding.kop_telp, textX, subY); subY+=4; }
+  doc.setDrawColor(230,220,210); doc.line(15, 30, pageW-15, 30);
+
+  doc.setFont('helvetica','bold'); doc.setFontSize(12); doc.setTextColor(40,30,60);
+  doc.text(title, 15, 38);
+  doc.setFont('helvetica','normal'); doc.setFontSize(9); doc.setTextColor(110,100,128);
+  let fy = 44;
+  subtitleLines.forEach(line=>{ doc.text(line, 15, fy); fy+=5; });
+  return fy+2;
+}
+function drawPdfFooter(doc){
+  const pageW = doc.internal.pageSize.getWidth();
+  const pageH = doc.internal.pageSize.getHeight();
+  const pageCount = doc.internal.getNumberOfPages();
+  for(let i=1;i<=pageCount;i++){
+    doc.setPage(i);
+    doc.setFont('helvetica','normal'); doc.setFontSize(7.5); doc.setTextColor(160,150,170);
+    doc.text('Dicetak: '+new Date().toLocaleString('id-ID'), 15, pageH-10);
+    doc.text('Developed by D.D Candra © 2026', pageW-15, pageH-10, {align:'right'});
+    doc.text('Halaman '+i+' / '+pageCount, pageW/2, pageH-10, {align:'center'});
+  }
+}
+function exportRekapPDF(){
+  if(!lastRekapData){ toast('Klik "Tampilkan Rekap" dulu sebelum export'); return; }
+  if(typeof window.jspdf === 'undefined'){ toast('Modul PDF gagal dimuat. Cek koneksi internet.'); return; }
+  const { jsPDF } = window.jspdf;
+  const doc = new jsPDF({unit:'mm', format:'a4'});
+  const pageW = doc.internal.pageSize.getWidth();
+  const d = lastRekapData;
+
+  if(d.mode==='detail'){
+    const subtitle = [
+      'Siswa: '+d.siswaNama+'  ·  Kelas: '+d.kelasNama,
+      'Bulan: '+bulanIndonesia(d.bulan)+'  ·  Filter status: '+statusLabelPdf(d.statusVal)
+    ];
+    let y = drawPdfHeader(doc, 'Rekap Kehadiran — Detail Harian', subtitle);
+
+    doc.setFont('helvetica','bold'); doc.setFontSize(8.5); doc.setTextColor(40,30,60);
+    doc.text('Hadir: '+d.sum.hadir+'   Terlambat: '+d.sum.terlambat+'   Izin: '+d.sum.izin+'   Sakit: '+d.sum.sakit+'   Alpa: '+d.sum.alpa, 15, y);
+    y += 8;
+
+    const cols = [ {h:'Tanggal', x:15, w:30}, {h:'Masuk', x:50, w:25}, {h:'Pulang', x:80, w:25}, {h:'Status', x:110, w:40} ];
+    y = drawTableHeader(doc, cols, y);
+    d.rows.forEach(r=>{
+      if(y>270){ doc.addPage(); y = drawPdfHeader(doc, 'Rekap Kehadiran — Detail Harian (lanjutan)', subtitle); y = drawTableHeader(doc, cols, y); }
+      const tgl = new Date(r.tanggal+'T00:00:00').toLocaleDateString('id-ID',{day:'2-digit',month:'short',year:'numeric'});
+      doc.setFont('helvetica','normal'); doc.setFontSize(8.5); doc.setTextColor(60,50,75);
+      doc.text(tgl, cols[0].x, y);
+      doc.text(fmtTime(r.jam_masuk), cols[1].x, y);
+      doc.text(fmtTime(r.jam_pulang), cols[2].x, y);
+      doc.text(statusLabelPdf(r.status), cols[3].x, y);
+      y += 6;
+    });
+    drawPdfFooter(doc);
+    doc.save('rekap-'+d.siswaNama.replace(/\s+/g,'_')+'-'+d.bulan+'.pdf');
+    return;
+  }
+
+  // mode summary
+  const subtitle = [
+    'Kelas: '+d.kelasNama+'  ·  Bulan: '+bulanIndonesia(d.bulan),
+    'Filter status: '+statusLabelPdf(d.statusVal)+'  ·  Total siswa: '+d.list.length
+  ];
+  let y = drawPdfHeader(doc, 'Rekap Kehadiran — Ringkasan Siswa', subtitle);
+  const cols = [ {h:'No', x:15, w:10}, {h:'Nama Siswa', x:25, w:50}, {h:'Hadir', x:80, w:18}, {h:'Telat', x:100, w:18}, {h:'Izin', x:120, w:18}, {h:'Sakit', x:140, w:18}, {h:'Alpa', x:160, w:18} ];
+  y = drawTableHeader(doc, cols, y);
+  d.list.forEach((s,i)=>{
+    if(y>270){ doc.addPage(); y = drawPdfHeader(doc, 'Rekap Kehadiran — Ringkasan Siswa (lanjutan)', subtitle); y = drawTableHeader(doc, cols, y); }
+    doc.setFont('helvetica','normal'); doc.setFontSize(8.5); doc.setTextColor(60,50,75);
+    doc.text(String(i+1), cols[0].x, y);
+    doc.text(s.nama, cols[1].x, y);
+    doc.text(String(s.hadir), cols[2].x, y);
+    doc.text(String(s.terlambat), cols[3].x, y);
+    doc.text(String(s.izin), cols[4].x, y);
+    doc.text(String(s.sakit), cols[5].x, y);
+    doc.text(String(s.alpa), cols[6].x, y);
+    y += 6.5;
+  });
+  drawPdfFooter(doc);
+  doc.save('rekap-'+d.kelasNama.replace(/\s+/g,'_')+'-'+d.bulan+'.pdf');
+}
+function drawTableHeader(doc, cols, y){
+  const pageW = doc.internal.pageSize.getWidth();
+  doc.setFillColor(255,243,230);
+  doc.rect(15, y-4.5, pageW-30, 7, 'F');
+  doc.setFont('helvetica','bold'); doc.setFontSize(8.5); doc.setTextColor(90,60,40);
+  cols.forEach(c=> doc.text(c.h, c.x, y));
+  doc.setDrawColor(230,220,210);
+  doc.line(15, y+2.5, pageW-15, y+2.5);
+  return y+9;
 }
 
 /* ============================================================
