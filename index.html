@@ -162,6 +162,17 @@ main{flex:1;padding:16px 16px 100px;position:relative;z-index:1;}
 .cubby-name{font-weight:700;font-size:14.5px;}
 .cubby-meta{font-size:11.5px;color:var(--text2);margin-top:2px;font-family:var(--mono);}
 .cubby-action{flex-shrink:0;}
+.emergency-toggle-row{display:flex;align-items:center;gap:12px;padding:12px 14px;border-radius:var(--r-sm);background:var(--surface2);border:1.5px solid var(--border2);margin-bottom:14px;cursor:pointer;transition:background .15s,border-color .15s;}
+.emergency-toggle-row.active{background:var(--bad-bg);border-color:var(--bad-brd);}
+.emergency-toggle-text{flex:1;min-width:0;}
+.emergency-toggle-title{font-weight:700;font-size:13px;}
+.emergency-toggle-row.active .emergency-toggle-title{color:var(--red);}
+.emergency-toggle-sub{font-size:11px;color:var(--text2);margin-top:2px;}
+.switch{width:44px;height:26px;border-radius:100px;background:var(--border2);flex-shrink:0;position:relative;transition:background .2s;}
+.switch.on{background:var(--red);}
+.switch-knob{position:absolute;top:3px;left:3px;width:20px;height:20px;border-radius:50%;background:#fff;box-shadow:0 1px 3px rgba(0,0,0,0.25);transition:transform .2s;}
+.switch.on .switch-knob{transform:translateX(18px);}
+.btn-locked{background:var(--surface2)!important;color:var(--muted)!important;box-shadow:none!important;cursor:not-allowed;}
 
 /* SEARCH */
 .search-box{position:relative;margin-bottom:14px;}
@@ -348,6 +359,14 @@ main{flex:1;padding:16px 16px 100px;position:relative;z-index:1;}
         Tap Kartu NFC untuk Check-In / Out
       </button>
       <div class="text-muted" id="nfcStatus" style="text-align:center;margin:-8px 0 14px;"></div>
+
+      <div class="emergency-toggle-row" id="emergencyToggleRow" onclick="toggleEmergencyMode()">
+        <div class="emergency-toggle-text">
+          <div class="emergency-toggle-title">🔒 Presensi Manual Terkunci</div>
+          <div class="emergency-toggle-sub">Wajib pakai kartu NFC. Aktifkan Mode Darurat kalau kartu hilang.</div>
+        </div>
+        <div class="switch" id="emergencySwitch"><div class="switch-knob"></div></div>
+      </div>
 
       <div class="search-box">
         <svg class="search-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="11" cy="11" r="8"/><path d="m21 21-4.3-4.3"/></svg>
@@ -744,6 +763,7 @@ function logout(){
    ENTER APP
 ============================================================ */
 async function enterApp(){
+  emergencyMode = false;
   document.getElementById('loginScreen').classList.add('hidden');
   document.getElementById('app').classList.remove('hidden');
   document.getElementById('setGuruName').textContent = currentGuru.nama;
@@ -1017,6 +1037,24 @@ async function saveSiswa(){
    PRESENSI (cek-in / cek-out) — cubby UI
 ============================================================ */
 let presensiHariIni = {}; // siswa_id -> row
+let emergencyMode = false;
+
+function toggleEmergencyMode(){
+  if(!emergencyMode){
+    const ok = confirm('Aktifkan Mode Darurat?\n\nGunakan HANYA jika kartu NFC siswa hilang/rusak. Presensi manual akan tercatat sebagai "Mode Darurat" untuk keperluan audit.\n\nLanjutkan?');
+    if(!ok) return;
+    emergencyMode = true;
+    toast('⚠️ Mode Darurat aktif — presensi manual diizinkan sementara');
+  } else {
+    emergencyMode = false;
+    toast('🔒 Presensi manual dikunci kembali');
+  }
+  document.getElementById('emergencyToggleRow').classList.toggle('active', emergencyMode);
+  document.getElementById('emergencySwitch').classList.toggle('on', emergencyMode);
+  document.querySelector('#emergencyToggleRow .emergency-toggle-title').textContent = emergencyMode ? '⚠️ Mode Darurat Aktif' : '🔒 Presensi Manual Terkunci';
+  document.querySelector('#emergencyToggleRow .emergency-toggle-sub').textContent = emergencyMode ? 'Presensi manual diizinkan sementara. Matikan setelah selesai.' : 'Wajib pakai kartu NFC. Aktifkan Mode Darurat kalau kartu hilang.';
+  renderPresensiList();
+}
 
 async function loadPresensiHariIni(){
   const rows = await sb('absensi_tk?tanggal=eq.'+todayKey()+'&select=*');
@@ -1038,9 +1076,15 @@ async function renderPresensiList(){
     const cubbyClass = state==='open' ? 'open' : state==='done' ? 'done' : '';
     const meta = state==='closed' ? 'Belum datang' : state==='open' ? 'Masuk '+fmtTime(r.jam_masuk) : `Masuk ${fmtTime(r.jam_masuk)} · Pulang ${fmtTime(r.jam_pulang)}`;
     let actionBtn = '';
-    if(state==='closed') actionBtn = `<button class="btn btn-sm btn-mint" onclick="checkIn('${s.id}')">Check-In</button>`;
-    else if(state==='open') actionBtn = `<button class="btn btn-sm btn-primary" onclick="checkOut('${s.id}')">Check-Out</button>`;
-    else actionBtn = `<span class="chip chip-ok">Selesai ✓</span>`;
+    if(state==='closed'){
+      actionBtn = emergencyMode
+        ? `<button class="btn btn-sm btn-mint" onclick="checkIn('${s.id}', true)">Check-In</button>`
+        : `<button class="btn btn-sm btn-locked" disabled title="Wajib pakai kartu NFC">🔒 Check-In</button>`;
+    } else if(state==='open'){
+      actionBtn = emergencyMode
+        ? `<button class="btn btn-sm btn-primary" onclick="checkOut('${s.id}', true)">Check-Out</button>`
+        : `<button class="btn btn-sm btn-locked" disabled title="Wajib pakai kartu NFC">🔒 Check-Out</button>`;
+    } else actionBtn = `<span class="chip chip-ok">Selesai ✓</span>`;
     return `<div class="cubby-row">
       <div class="cubby ${cubbyClass}"><div class="cubby-door"></div><span>🧒</span></div>
       <div class="cubby-info"><div class="cubby-name">${s.nama}</div><div class="cubby-meta">${meta}</div></div>
@@ -1048,21 +1092,23 @@ async function renderPresensiList(){
     </div>`;
   }).join('');
 }
-async function checkIn(siswaId){
+async function checkIn(siswaId, isManual){
   const s = siswaAll.find(x=>String(x.id)===String(siswaId));
   const lateCut = '08:00';
   const status = nowTime() > lateCut ? 'terlambat' : 'hadir';
+  const payload = { siswa_id: s.id, kelas_id: s.kelas_id, tanggal: todayKey(), jam_masuk: nowTime(), status };
+  if(isManual) payload.catatan = 'Presensi manual (Mode Darurat — kartu hilang/rusak) oleh '+currentGuru.nama;
   try{
-    await sb('absensi_tk', {method:'POST', headers:{'Prefer':'resolution=merge-duplicates,return=minimal'}, body:JSON.stringify({
-      siswa_id: s.id, kelas_id: s.kelas_id, tanggal: todayKey(), jam_masuk: nowTime(), status
-    })});
+    await sb('absensi_tk', {method:'POST', headers:{'Prefer':'resolution=merge-duplicates,return=minimal'}, body:JSON.stringify(payload)});
     toast(s.nama+' berhasil Check-In'); renderPresensiList();
   }catch(e){ toast('Gagal: '+e.message); }
 }
-async function checkOut(siswaId){
+async function checkOut(siswaId, isManual){
   const s = siswaAll.find(x=>String(x.id)===String(siswaId));
+  const payload = { jam_pulang: nowTime() };
+  if(isManual) payload.catatan = 'Presensi manual (Mode Darurat — kartu hilang/rusak) oleh '+currentGuru.nama;
   try{
-    await sb('absensi_tk?siswa_id=eq.'+siswaId+'&tanggal=eq.'+todayKey(), {method:'PATCH', body:JSON.stringify({ jam_pulang: nowTime() })});
+    await sb('absensi_tk?siswa_id=eq.'+siswaId+'&tanggal=eq.'+todayKey(), {method:'PATCH', body:JSON.stringify(payload)});
     toast(s.nama+' berhasil Check-Out'); renderPresensiList();
   }catch(e){ toast('Gagal: '+e.message); }
 }
@@ -1397,9 +1443,12 @@ function setupNotifications(){
     }).subscribe();
 
   notifPresensiChannel = sbClient.channel('notif-absensi')
-    .on('postgres_changes', {event:'INSERT', schema:'public', table:'absensi_tk'}, payload=>{
-      const row = payload.new;
-      if(myKelasIds.includes(row.kelas_id)){ notifCounts.presensi++; renderNotifDot(); }
+    .on('postgres_changes', {event:'*', schema:'public', table:'absensi_tk'}, payload=>{
+      const row = payload.new || payload.old;
+      if(!row || !myKelasIds.includes(row.kelas_id)) return;
+      if(payload.eventType==='INSERT'){ notifCounts.presensi++; renderNotifDot(); }
+      // Refresh live kalau layar Presensi sedang dibuka, tanpa perlu refresh manual
+      if(document.getElementById('screenPresensi')?.classList.contains('active')) renderPresensiList();
     }).subscribe();
 
   renderNotifDot();
