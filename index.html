@@ -7,6 +7,8 @@
 <meta name="mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-capable" content="yes">
 <title id="pageTitle">AbsensiTK — Guru & Admin</title>
+<link rel="manifest" href="manifest-guru.json">
+<link rel="apple-touch-icon" href="icon-guru-192.png">
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link href="https://fonts.googleapis.com/css2?family=Baloo+2:wght@500;600;700;800&family=Plus+Jakarta+Sans:wght@400;500;600;700;800&family=JetBrains+Mono:wght@400;500;700&display=swap" rel="stylesheet">
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
@@ -1563,6 +1565,27 @@ function loadNotifLastRead(){
 }
 function saveNotifLastRead(){ localStorage.setItem(notifStorageKey(), JSON.stringify(notifLastRead)); }
 
+/* Bunyi notifikasi — dibuat langsung via Web Audio API, tanpa file audio eksternal */
+let notifAudioCtx = null;
+function playNotifSound(){
+  try{
+    if(!notifAudioCtx) notifAudioCtx = new (window.AudioContext||window.webkitAudioContext)();
+    if(notifAudioCtx.state==='suspended') notifAudioCtx.resume();
+    const now = notifAudioCtx.currentTime;
+    [880, 1175].forEach((freq,i)=>{
+      const osc = notifAudioCtx.createOscillator();
+      const gain = notifAudioCtx.createGain();
+      osc.type = 'sine'; osc.frequency.value = freq;
+      const t0 = now + i*0.11;
+      gain.gain.setValueAtTime(0, t0);
+      gain.gain.linearRampToValueAtTime(0.18, t0+0.02);
+      gain.gain.exponentialRampToValueAtTime(0.001, t0+0.22);
+      osc.connect(gain); gain.connect(notifAudioCtx.destination);
+      osc.start(t0); osc.stop(t0+0.24);
+    });
+  }catch(e){ /* Audio tidak didukung / diblokir browser, abaikan diam-diam */ }
+}
+
 function setupNotifications(){
   loadNotifLastRead();
   notifCounts = { chat:0, broadcast:0, presensi:0 };
@@ -1578,20 +1601,20 @@ function setupNotifications(){
     .on('postgres_changes', {event:'INSERT', schema:'public', table:'pesan'}, payload=>{
       const row = payload.new;
       if(myKelasIds.includes(row.kelas_id) && row.pengirim_tipe==='ortu'){
-        notifCounts.chat++; renderNotifDot();
+        notifCounts.chat++; renderNotifDot(); playNotifSound();
       }
     }).subscribe();
 
   notifBroadcastChannel = sbClient.channel('notif-broadcast')
     .on('postgres_changes', {event:'INSERT', schema:'public', table:'broadcast'}, payload=>{
-      notifCounts.broadcast++; renderNotifDot();
+      notifCounts.broadcast++; renderNotifDot(); playNotifSound();
     }).subscribe();
 
   notifPresensiChannel = sbClient.channel('notif-absensi')
     .on('postgres_changes', {event:'*', schema:'public', table:'absensi_tk'}, payload=>{
       const row = payload.new || payload.old;
       if(!row || !myKelasIds.includes(row.kelas_id)) return;
-      if(payload.eventType==='INSERT'){ notifCounts.presensi++; renderNotifDot(); }
+      if(payload.eventType==='INSERT'){ notifCounts.presensi++; renderNotifDot(); playNotifSound(); }
       // Refresh live kalau layar Presensi sedang dibuka, tanpa perlu refresh manual
       if(document.getElementById('screenPresensi')?.classList.contains('active')) renderPresensiList();
     }).subscribe();
@@ -1632,6 +1655,13 @@ function handleNotifClick(key, screenName){
   document.getElementById('notifPanel').classList.add('hidden');
   switchScreen(screenName);
 }
+document.addEventListener('click', function unlockAudioOnce(){
+  try{
+    if(!notifAudioCtx) notifAudioCtx = new (window.AudioContext||window.webkitAudioContext)();
+    if(notifAudioCtx.state==='suspended') notifAudioCtx.resume();
+  }catch(e){}
+  document.removeEventListener('click', unlockAudioOnce);
+}, {once:true});
 document.addEventListener('click', (e)=>{
   const panel = document.getElementById('notifPanel');
   const bell = document.getElementById('bellBtn');
@@ -1645,16 +1675,61 @@ document.addEventListener('click', (e)=>{
 ============================================================ */
 function renderSettingLists(){
   document.getElementById('kelasManageList').innerHTML = kelasAll.map(k=>`
-    <div class="row" style="align-items:center;margin-bottom:8px;">
+    <div class="row" style="align-items:center;margin-bottom:8px;gap:6px;">
       <span class="chip chip-kelas" style="flex:1;">${k.ikon||''} ${k.nama}</span>
+      <button class="btn-sm btn-outline btn" style="flex:0 0 auto;" onclick="editKelasName('${k.id}','${k.nama.replace(/'/g,"\\'")}')">✏️</button>
+      <button class="btn-sm btn-outline btn" style="flex:0 0 auto;" onclick="deleteKelas('${k.id}','${k.nama.replace(/'/g,"\\'")}')">🗑️</button>
     </div>`).join('') || '<p class="text-muted">Belum ada kelas</p>';
   document.getElementById('guruManageList').innerHTML = guruAll.map(g=>`
-    <div class="row" style="align-items:center;margin-bottom:8px;">
+    <div class="row" style="align-items:center;margin-bottom:8px;gap:6px;">
       <span class="chip chip-kelas" style="flex:1;">${g.nama} · ${g.peran==='admin'?'Admin':(g.kelas?.nama||'-')}</span>
+      <button class="btn-sm btn-outline btn" style="flex:0 0 auto;" onclick="editGuruName('${g.id}','${g.nama.replace(/'/g,"\\'")}')">✏️</button>
+      <button class="btn-sm btn-outline btn" style="flex:0 0 auto;" onclick="deleteGuru('${g.id}','${g.nama.replace(/'/g,"\\'")}')">🗑️</button>
     </div>`).join('') || '<p class="text-muted">Belum ada guru</p>';
   document.getElementById('newGuruPeran').onchange = e=>{
     document.getElementById('newGuruKelasWrap').classList.toggle('hidden', e.target.value==='admin');
   };
+}
+async function editKelasName(id, currentName){
+  const newName = prompt('Ubah nama kelas:', currentName);
+  if(newName===null) return;
+  const trimmed = newName.trim();
+  if(!trimmed){ toast('Nama tidak boleh kosong'); return; }
+  try{
+    await sb('kelas?id=eq.'+id, {method:'PATCH', body:JSON.stringify({nama:trimmed})});
+    await loadKelas(); renderKelasTabs(); renderSettingLists(); renderPresensiList(); renderSiswaList();
+    toast('Nama kelas diperbarui');
+  }catch(e){ toast('Gagal: '+e.message); }
+}
+async function deleteKelas(id, nama){
+  const ok = confirm('Hapus kelas "'+nama+'"?\n\nSiswa & guru yang terhubung ke kelas ini TIDAK akan terhapus, tapi jadi tidak punya kelas (perlu diatur ulang manual). Riwayat chat kelas ini akan ikut terhapus permanen.\n\nLanjutkan?');
+  if(!ok) return;
+  try{
+    await sb('kelas?id=eq.'+id, {method:'DELETE'});
+    await loadKelas(); await loadSiswa(); renderKelasTabs(); renderSettingLists(); renderPresensiList(); renderSiswaList();
+    toast('Kelas dihapus');
+  }catch(e){ toast('Gagal: '+e.message); }
+}
+async function editGuruName(id, currentName){
+  const newName = prompt('Ubah nama guru:', currentName);
+  if(newName===null) return;
+  const trimmed = newName.trim();
+  if(!trimmed){ toast('Nama tidak boleh kosong'); return; }
+  try{
+    await sb('guru?id=eq.'+id, {method:'PATCH', body:JSON.stringify({nama:trimmed})});
+    await loadGuruForLogin(); renderSettingLists();
+    toast('Nama guru diperbarui');
+  }catch(e){ toast('Gagal: '+e.message); }
+}
+async function deleteGuru(id, nama){
+  if(String(id)===String(currentGuru.id)){ toast('Tidak bisa menghapus akun sendiri yang sedang login'); return; }
+  const ok = confirm('Hapus akun guru "'+nama+'"? Guru ini tidak akan bisa login lagi. Lanjutkan?');
+  if(!ok) return;
+  try{
+    await sb('guru?id=eq.'+id, {method:'DELETE'});
+    await loadGuruForLogin(); renderSettingLists();
+    toast('Guru dihapus');
+  }catch(e){ toast('Gagal: '+e.message); }
 }
 async function addKelas(){
   const nama = document.getElementById('newKelasNama').value.trim();
@@ -1706,6 +1781,11 @@ function applyBrandingSafe(){
   document.getElementById('loginAppName').textContent = name;
   document.getElementById('loginAppSub').textContent = sub;
   document.title = name + ' — Guru & Admin';
+}
+if('serviceWorker' in navigator){
+  window.addEventListener('load', ()=>{
+    navigator.serviceWorker.register('sw-guru.js').catch(()=>{ /* offline saat install pertama, abaikan */ });
+  });
 }
 </script>
 </body>
