@@ -479,6 +479,14 @@ main{flex:1;padding:16px 16px 100px;position:relative;z-index:1;}
         </div>
       </div>
 
+      <div class="card">
+        <div class="card-title">🔑 Ganti PIN Saya</div>
+        <div class="form-group"><label class="form-label">PIN Lama</label><input type="text" maxlength="4" inputmode="numeric" class="form-input" id="oldPinInput" placeholder="••••"></div>
+        <div class="form-group"><label class="form-label">PIN Baru (4 digit)</label><input type="text" maxlength="4" inputmode="numeric" class="form-input" id="newPinInput" placeholder="••••"></div>
+        <div class="form-group"><label class="form-label">Konfirmasi PIN Baru</label><input type="text" maxlength="4" inputmode="numeric" class="form-input" id="confirmPinInput" placeholder="••••"></div>
+        <button class="btn btn-primary btn-block" onclick="changeMyPin()">Simpan PIN Baru</button>
+      </div>
+
       <div class="card" id="waliKelasNotice" style="display:none;">
         <div class="empty">
           <div class="empty-emoji">🔒</div>
@@ -1708,6 +1716,24 @@ async function deleteKelas(id, nama){
     await sb('kelas?id=eq.'+id, {method:'DELETE'});
     await loadKelas(); await loadSiswa(); renderKelasTabs(); renderSettingLists(); renderPresensiList(); renderSiswaList();
     toast('Kelas dihapus');
+  }catch(e){ toast('Gagal: '+e.message); }
+}
+async function changeMyPin(){
+  const oldPin = document.getElementById('oldPinInput').value.trim();
+  const newPin = document.getElementById('newPinInput').value.trim();
+  const confirmPin = document.getElementById('confirmPinInput').value.trim();
+  if(oldPin !== currentGuru.pin){ toast('PIN lama salah'); return; }
+  if(newPin.length!==4 || !/^\d{4}$/.test(newPin)){ toast('PIN baru harus 4 digit angka'); return; }
+  if(newPin !== confirmPin){ toast('Konfirmasi PIN tidak cocok'); return; }
+  if(newPin === oldPin){ toast('PIN baru tidak boleh sama dengan PIN lama'); return; }
+  try{
+    await sb('guru?id=eq.'+currentGuru.id, {method:'PATCH', body:JSON.stringify({pin:newPin})});
+    currentGuru.pin = newPin;
+    sessionStorage.setItem('tkGuruSession', JSON.stringify(currentGuru));
+    document.getElementById('oldPinInput').value='';
+    document.getElementById('newPinInput').value='';
+    document.getElementById('confirmPinInput').value='';
+    toast('PIN berhasil diubah');
   }catch(e){ toast('Gagal: '+e.message); }
 }
 async function editGuruName(id, currentName){
