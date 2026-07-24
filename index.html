@@ -1294,7 +1294,11 @@ async function loadRekap(){
     if(statusVal!=='all') dRows = dRows.filter(r=>r.status===statusVal);
     const bulanNama=['Jan','Feb','Mar','Apr','Mei','Jun','Jul','Agu','Sep','Okt','Nov','Des'];
     const sum = {hadir:0,terlambat:0,izin:0,sakit:0,alpa:0};
-    rows.filter(r=>String(r.siswa_id)===String(siswaVal)).forEach(r=>{ if(sum[r.status]!==undefined) sum[r.status]++; });
+    rows.filter(r=>String(r.siswa_id)===String(siswaVal)).forEach(r=>{
+      if(r.status==='hadir'){ sum.hadir++; }
+      else if(r.status==='terlambat'){ sum.hadir++; sum.terlambat++; }
+      else if(sum[r.status]!==undefined){ sum[r.status]++; }
+    });
     lastRekapData = { mode:'detail', bulan, siswaNama: s?.nama||'', kelasNama: s?.kelas?.nama || (kelasAll.find(k=>String(k.id)===String(kelasVal))?.nama) || 'Semua Kelas', statusVal, sum, rows: dRows };
     if(!dRows.length){
       box.innerHTML = `<div style="font-weight:800;font-family:var(--display);margin-bottom:10px;">${s?.nama||''}</div>` + emptyState('📭','Tidak ada data presensi','Sesuai filter bulan/status yang dipilih');
@@ -1302,13 +1306,14 @@ async function loadRekap(){
     }
     box.innerHTML = `
       <div style="font-weight:800;font-family:var(--display);margin-bottom:10px;">${s?.nama||''}</div>
-      <div class="row mt8" style="margin-bottom:14px;flex-wrap:wrap;gap:8px;">
+      <div class="row mt8" style="margin-bottom:6px;flex-wrap:wrap;gap:8px;">
         <span class="chip chip-ok">Hadir ${sum.hadir}</span>
         <span class="chip chip-warn">Telat ${sum.terlambat}</span>
         <span class="chip chip-muted">Izin ${sum.izin}</span>
         <span class="chip chip-muted">Sakit ${sum.sakit}</span>
         <span class="chip chip-bad">Alpa ${sum.alpa}</span>
-      </div>` +
+      </div>
+      <div class="text-muted" style="margin-bottom:14px;font-size:11px;">*Hadir sudah termasuk yang datang terlambat</div>` +
       dRows.map(r=>{
         const d = new Date(r.tanggal+'T00:00:00');
         const chip = r.status==='hadir'?'chip-ok':r.status==='terlambat'?'chip-warn':r.status==='alpa'?'chip-bad':'chip-muted';
@@ -1324,7 +1329,12 @@ async function loadRekap(){
 
   // ===== Rekap ringkasan semua siswa (sesuai filter kelas) =====
   const perSiswa = {};
-  rows.forEach(r=>{ perSiswa[r.siswa_id] = perSiswa[r.siswa_id]||{hadir:0,terlambat:0,izin:0,sakit:0,alpa:0}; if(perSiswa[r.siswa_id][r.status]!==undefined) perSiswa[r.siswa_id][r.status]++; });
+  rows.forEach(r=>{
+    perSiswa[r.siswa_id] = perSiswa[r.siswa_id]||{hadir:0,terlambat:0,izin:0,sakit:0,alpa:0};
+    if(r.status==='hadir'){ perSiswa[r.siswa_id].hadir++; }
+    else if(r.status==='terlambat'){ perSiswa[r.siswa_id].hadir++; perSiswa[r.siswa_id].terlambat++; }
+    else if(perSiswa[r.siswa_id][r.status]!==undefined){ perSiswa[r.siswa_id][r.status]++; }
+  });
 
   // Kartu "Sering Terlambat"
   const lateSorted = list.map(s=>({s, telat:(perSiswa[s.id]?.terlambat)||0})).filter(x=>x.telat>0).sort((a,b)=>b.telat-a.telat).slice(0,5);
@@ -1343,7 +1353,7 @@ async function loadRekap(){
   lastRekapData = { mode:'summary', bulan, kelasNama: kelasNamaForPdf, statusVal, list: filteredList.map(s=>({ nama:s.nama, ...( perSiswa[s.id] || {hadir:0,terlambat:0,izin:0,sakit:0,alpa:0} ) })) };
 
   if(!filteredList.length){ box.innerHTML = emptyState('📊','Tidak ada data sesuai filter',''); return; }
-  box.innerHTML = filteredList.map(s=>{
+  box.innerHTML = '<div class="text-muted" style="margin-bottom:10px;font-size:11px;">*Hadir sudah termasuk yang datang terlambat</div>' + filteredList.map(s=>{
     const d = perSiswa[s.id] || {hadir:0,terlambat:0,izin:0,sakit:0,alpa:0};
     return `<div style="padding:10px 0;border-bottom:1px solid var(--border);cursor:pointer;" onclick="jumpToSiswaRekap('${s.id}')">
       <div style="font-weight:700;">${s.nama}</div>
@@ -1424,7 +1434,10 @@ function exportRekapPDF(){
 
     doc.setFont('helvetica','bold'); doc.setFontSize(8.5); doc.setTextColor(40,30,60);
     doc.text('Hadir: '+d.sum.hadir+'   Terlambat: '+d.sum.terlambat+'   Izin: '+d.sum.izin+'   Sakit: '+d.sum.sakit+'   Alpa: '+d.sum.alpa, 15, y);
-    y += 8;
+    y += 4.5;
+    doc.setFont('helvetica','italic'); doc.setFontSize(7.5); doc.setTextColor(130,120,140);
+    doc.text('*Hadir sudah termasuk yang datang terlambat', 15, y);
+    y += 6;
 
     const cols = [ {h:'Tanggal', x:15, w:30}, {h:'Masuk', x:50, w:25}, {h:'Pulang', x:80, w:25}, {h:'Status', x:110, w:40} ];
     y = drawTableHeader(doc, cols, y);
@@ -1446,7 +1459,8 @@ function exportRekapPDF(){
   // mode summary
   const subtitle = [
     'Kelas: '+d.kelasNama+'  ·  Bulan: '+bulanIndonesia(d.bulan),
-    'Filter status: '+statusLabelPdf(d.statusVal)+'  ·  Total siswa: '+d.list.length
+    'Filter status: '+statusLabelPdf(d.statusVal)+'  ·  Total siswa: '+d.list.length,
+    '*Kolom Hadir sudah termasuk yang datang terlambat'
   ];
   let y = drawPdfHeader(doc, 'Rekap Kehadiran — Ringkasan Siswa', subtitle);
   const cols = [ {h:'No', x:15, w:10}, {h:'Nama Siswa', x:25, w:50}, {h:'Hadir', x:80, w:18}, {h:'Telat', x:100, w:18}, {h:'Izin', x:120, w:18}, {h:'Sakit', x:140, w:18}, {h:'Alpa', x:160, w:18} ];
