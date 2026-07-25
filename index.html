@@ -221,6 +221,8 @@ main{flex:1;padding:16px 16px 100px;position:relative;z-index:1;}
 .nav-badge-center{width:56px;height:56px;border-radius:50%;background:var(--mint);display:flex;align-items:center;justify-content:center;box-shadow:0 6px 16px rgba(29,158,117,0.4);border:3px solid var(--bg);transition:transform .15s ease;}
 .nav-badge-center svg{width:26px;height:26px;fill:none;stroke:#fff;stroke-width:2.3;}
 .nav-item-center.active .nav-badge-center{transform:scale(1.05);}
+.nav-badge,.nav-badge-center{position:relative;}
+.nav-dot{position:absolute;top:-2px;right:-2px;width:10px;height:10px;border-radius:50%;background:var(--red);border:2px solid var(--bg);}
 .nav-item-center span{font-weight:800;color:#1F9C90;opacity:1;}
 
 /* LOGIN SCREEN */
@@ -934,7 +936,8 @@ function switchScreen(name){
   document.getElementById('screen'+name).classList.add('active');
   document.querySelectorAll('.nav-item').forEach(n=>n.classList.toggle('active', n.dataset.screen===name));
   document.querySelectorAll('.icon-btn-hdr[data-screen]').forEach(b=>b.classList.toggle('active', b.dataset.screen===name));
-  if(name==='Chat') scrollChatBottom();
+  if(name==='Chat'){ scrollChatBottom(); setNavDot('Chat', false); }
+  if(name==='Broadcast') setNavDot('Broadcast', false);
   const notifMap = { Chat:'chat', Broadcast:'broadcast', Presensi:'presensi' };
   if(notifMap[name] && notifCounts[notifMap[name]]>0){
     notifCounts[notifMap[name]] = 0;
@@ -1610,12 +1613,14 @@ function setupNotifications(){
       const row = payload.new;
       if(myKelasIds.includes(row.kelas_id) && row.pengirim_tipe==='ortu'){
         notifCounts.chat++; renderNotifDot(); playNotifSound();
+        if(!document.getElementById('screenChat')?.classList.contains('active')) setNavDot('Chat', true);
       }
     }).subscribe();
 
   notifBroadcastChannel = sbClient.channel('notif-broadcast')
     .on('postgres_changes', {event:'INSERT', schema:'public', table:'broadcast'}, payload=>{
       notifCounts.broadcast++; renderNotifDot(); playNotifSound();
+      if(!document.getElementById('screenBroadcast')?.classList.contains('active')) setNavDot('Broadcast', true);
     }).subscribe();
 
   notifPresensiChannel = sbClient.channel('notif-absensi')
@@ -1632,6 +1637,14 @@ function setupNotifications(){
 function renderNotifDot(){
   const total = notifCounts.chat + notifCounts.broadcast + notifCounts.presensi;
   document.getElementById('notifDot').classList.toggle('hidden', total===0);
+}
+function setNavDot(screenName, show){
+  const item = document.querySelector('.nav-item[data-screen="'+screenName+'"] .nav-badge, .nav-item[data-screen="'+screenName+'"] .nav-badge-center');
+  if(!item) return;
+  let dot = item.querySelector('.nav-dot');
+  if(show){
+    if(!dot){ dot = document.createElement('span'); dot.className='nav-dot'; item.appendChild(dot); }
+  } else if(dot){ dot.remove(); }
 }
 function toggleNotifPanel(){
   const panel = document.getElementById('notifPanel');
