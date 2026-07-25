@@ -88,7 +88,7 @@ input,select,textarea{font-family:inherit;color:inherit}
 .icon-btn-hdr svg{width:19px;height:19px;}
 .icon-btn-hdr:active{background:var(--border2);}
 .icon-btn-hdr.active{background:var(--coral);color:#fff;border-color:var(--coral);}
-.notif-dot{position:absolute;top:6px;right:7px;width:9px;height:9px;border-radius:50%;background:var(--red);border:1.5px solid var(--bg);}
+.notif-dot{position:absolute;top:4px;right:5px;width:13px;height:13px;border-radius:50%;background:#FF3B30;border:2px solid var(--bg);box-shadow:0 0 0 2px rgba(255,59,48,0.25);animation:notifPulse 1.6s ease infinite;}
 .hdr-guru-row{display:flex;align-items:center;gap:7px;margin-top:9px;font-size:12px;color:var(--text2);font-weight:600;}
 .hdr-avatar{width:24px;height:24px;border-radius:50%;background:var(--surface2);display:flex;align-items:center;justify-content:center;font-size:12px;border:1px solid var(--border2);flex-shrink:0;}
 .notif-panel{
@@ -222,7 +222,8 @@ main{flex:1;padding:16px 16px 100px;position:relative;z-index:1;}
 .nav-badge-center svg{width:26px;height:26px;fill:none;stroke:#fff;stroke-width:2.3;}
 .nav-item-center.active .nav-badge-center{transform:scale(1.05);}
 .nav-badge,.nav-badge-center{position:relative;}
-.nav-dot{position:absolute;top:-2px;right:-2px;width:10px;height:10px;border-radius:50%;background:var(--red);border:2px solid var(--bg);}
+.nav-dot{position:absolute;top:-3px;right:-3px;width:14px;height:14px;border-radius:50%;background:#FF3B30;border:2.5px solid var(--bg);box-shadow:0 0 0 2px rgba(255,59,48,0.3);animation:notifPulse 1.6s ease infinite;}
+@keyframes notifPulse{0%,100%{transform:scale(1);}50%{transform:scale(1.18);}}
 .nav-item-center span{font-weight:800;color:#1F9C90;opacity:1;}
 
 /* LOGIN SCREEN */
@@ -474,7 +475,11 @@ main{flex:1;padding:16px 16px 100px;position:relative;z-index:1;}
       <div class="section-title">Pengaturan ⚙️</div>
 
       <div class="card" style="display:flex;align-items:center;gap:12px;">
-        <div class="hdr-avatar" style="width:44px;height:44px;font-size:19px;">👤</div>
+        <label for="guruPhotoInput" style="cursor:pointer;position:relative;flex-shrink:0;">
+          <div class="hdr-avatar" id="setGuruAvatar" style="width:52px;height:52px;font-size:22px;overflow:hidden;">👤</div>
+          <div style="position:absolute;bottom:-2px;right:-2px;width:20px;height:20px;border-radius:50%;background:var(--coral);display:flex;align-items:center;justify-content:center;border:2px solid var(--surface);font-size:10px;">📷</div>
+        </label>
+        <input type="file" id="guruPhotoInput" accept="image/*" class="hidden" onchange="handleGuruPhotoUpload(event)">
         <div style="flex:1;">
           <div style="font-weight:800;font-size:15px;" id="setGuruName">—</div>
           <div class="text-muted" id="setGuruRole">—</div>
@@ -788,6 +793,7 @@ async function enterApp(){
   document.getElementById('app').classList.remove('hidden');
   document.getElementById('setGuruName').textContent = currentGuru.nama;
   document.getElementById('setGuruRole').textContent = currentGuru.peran==='admin' ? 'Admin' : ('Wali Kelas' + (currentGuru.kelas?.nama ? ' · '+currentGuru.kelas.nama : ''));
+  document.getElementById('setGuruAvatar').innerHTML = currentGuru.foto_url ? `<img src="${currentGuru.foto_url}" style="width:100%;height:100%;object-fit:cover;">` : '👤';
   applyBranding();
   await loadKelas();
   await loadSiswa();
@@ -1730,6 +1736,32 @@ async function deleteKelas(id, nama){
     await loadKelas(); await loadSiswa(); renderKelasTabs(); renderSettingLists(); renderPresensiList(); renderSiswaList();
     toast('Kelas dihapus');
   }catch(e){ toast('Gagal: '+e.message); }
+}
+function handleGuruPhotoUpload(ev){
+  const file = ev.target.files[0]; if(!file) return;
+  const reader = new FileReader();
+  reader.onload = ()=>{
+    const img = new Image();
+    img.onload = async ()=>{
+      const canvas = document.createElement('canvas');
+      const size = 240;
+      const scale = Math.max(size/img.width, size/img.height);
+      const w = img.width*scale, h = img.height*scale;
+      canvas.width = size; canvas.height = size;
+      const ctx = canvas.getContext('2d');
+      ctx.drawImage(img, (size-w)/2, (size-h)/2, w, h);
+      const dataUrl = canvas.toDataURL('image/jpeg', 0.85);
+      document.getElementById('setGuruAvatar').innerHTML = `<img src="${dataUrl}" style="width:100%;height:100%;object-fit:cover;">`;
+      try{
+        await sb('guru?id=eq.'+currentGuru.id, {method:'PATCH', body:JSON.stringify({foto_url:dataUrl})});
+        currentGuru.foto_url = dataUrl;
+        sessionStorage.setItem('tkGuruSession', JSON.stringify(currentGuru));
+        toast('Foto profil diperbarui');
+      }catch(e){ toast('Gagal simpan foto: '+e.message); }
+    };
+    img.src = reader.result;
+  };
+  reader.readAsDataURL(file);
 }
 async function changeMyPin(){
   const oldPin = document.getElementById('oldPinInput').value.trim();
