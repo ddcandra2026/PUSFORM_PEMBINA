@@ -547,7 +547,7 @@ main{flex:1;padding:16px 16px 100px;position:relative;z-index:1;}
           <button class="btn btn-outline btn-block" onclick="addGuru()">+ Tambah Guru</button>
         </div>
 
-        <div class="card">
+        <div class="card" id="koneksiDbCard">
           <div class="card-title">🔌 Koneksi Database</div>
           <div class="form-group"><label class="form-label">Project URL</label><input type="text" class="form-input" id="cfgUrl"></div>
           <div class="form-group"><label class="form-label">Anon Key</label><input type="text" class="form-input" id="cfgKey"></div>
@@ -809,6 +809,8 @@ async function enterApp(){
   const isAdmin = currentGuru.peran==='admin';
   document.getElementById('adminOnlySettings').style.display = isAdmin ? '' : 'none';
   document.getElementById('waliKelasNotice').style.display = isAdmin ? 'none' : '';
+  const isSuperAdmin = !!currentGuru.super_admin_pin;
+  document.getElementById('koneksiDbCard').style.display = isSuperAdmin ? '' : 'none';
 }
 
 function applyBranding(){
@@ -1709,7 +1711,7 @@ function renderSettingLists(){
     </div>`).join('') || '<p class="text-muted">Belum ada kelas</p>';
   document.getElementById('guruManageList').innerHTML = guruAll.map(g=>`
     <div class="row" style="align-items:center;margin-bottom:8px;gap:6px;">
-      <span class="chip chip-kelas" style="flex:1;">${g.nama} · ${g.peran==='admin'?'Admin':(g.kelas?.nama||'-')}</span>
+      <span class="chip chip-kelas" style="flex:1;">${g.super_admin_pin?'🔒 ':''}${g.nama} · ${g.peran==='admin'?'Admin':(g.kelas?.nama||'-')}</span>
       <button class="btn-sm btn-outline btn" style="flex:0 0 auto;" onclick="editGuruName('${g.id}','${g.nama.replace(/'/g,"\\'")}')">✏️</button>
       <button class="btn-sm btn-outline btn" style="flex:0 0 auto;" onclick="deleteGuru('${g.id}','${g.nama.replace(/'/g,"\\'")}')">🗑️</button>
     </div>`).join('') || '<p class="text-muted">Belum ada guru</p>';
@@ -1781,7 +1783,16 @@ async function changeMyPin(){
     toast('PIN berhasil diubah');
   }catch(e){ toast('Gagal: '+e.message); }
 }
+function checkSuperAdminPin(id){
+  const g = guruAll.find(x=>String(x.id)===String(id));
+  if(!g || !g.super_admin_pin) return true; // tidak terkunci, lanjut bebas
+  const entered = prompt('🔒 Akun ini terkunci. Masukkan kode 6 digit untuk melanjutkan:');
+  if(entered===null) return false;
+  if(entered.trim() !== g.super_admin_pin){ toast('Kode salah. Aksi dibatalkan.'); return false; }
+  return true;
+}
 async function editGuruName(id, currentName){
+  if(!checkSuperAdminPin(id)) return;
   const newName = prompt('Ubah nama guru:', currentName);
   if(newName===null) return;
   const trimmed = newName.trim();
@@ -1794,6 +1805,7 @@ async function editGuruName(id, currentName){
 }
 async function deleteGuru(id, nama){
   if(String(id)===String(currentGuru.id)){ toast('Tidak bisa menghapus akun sendiri yang sedang login'); return; }
+  if(!checkSuperAdminPin(id)) return;
   const ok = confirm('Hapus akun guru "'+nama+'"? Guru ini tidak akan bisa login lagi. Lanjutkan?');
   if(!ok) return;
   try{
