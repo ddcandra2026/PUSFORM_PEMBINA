@@ -13,6 +13,7 @@
 <link href="https://fonts.googleapis.com/css2?family=Baloo+2:wght@500;600;700;800&family=Plus+Jakarta+Sans:wght@400;500;600;700;800&family=JetBrains+Mono:wght@400;500;700&display=swap" rel="stylesheet">
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/PapaParse/5.4.1/papaparse.min.js"></script>
 <style>
 :root{
   --bg:        #FFF9F2;
@@ -397,6 +398,16 @@ main{flex:1;padding:16px 16px 100px;position:relative;z-index:1;}
     <!-- ===== SISWA ===== -->
     <div class="screen" id="screenSiswa">
       <div class="section-title">Data Siswa 🎒</div>
+      <div class="card" style="padding:14px;margin-bottom:14px;">
+        <div class="card-title" style="font-size:14px;margin-bottom:8px;">📋 Import Data Siswa (banyak sekaligus)</div>
+        <div class="text-muted" style="margin-bottom:10px;">Download template, isi di Excel/Spreadsheet, lalu upload lagi ke sini.</div>
+        <div class="row">
+          <button class="btn btn-outline" onclick="downloadSiswaTemplate()">⬇️ Download Template</button>
+          <label class="btn btn-mint" for="importSiswaInput" style="cursor:pointer;text-align:center;">⬆️ Upload Template</label>
+        </div>
+        <input type="file" id="importSiswaInput" accept=".csv" class="hidden" onchange="handleImportSiswa(event)">
+        <div id="importSiswaStatus" class="text-muted" style="margin-top:8px;"></div>
+      </div>
       <button class="btn btn-primary btn-block mt8" style="margin-bottom:14px;" onclick="openSiswaForm()">+ Tambah Siswa Baru</button>
       <div class="tabs" id="siswaKelasTabs"></div>
       <div class="search-box">
@@ -1061,6 +1072,60 @@ async function saveSiswa(){
     closeSiswaForm();
     await loadSiswa(); renderSiswaList(); renderPresensiList();
   }catch(e){ toast('Gagal menyimpan: '+e.message); }
+}
+
+/* ============================================================
+   IMPORT SISWA DARI TEMPLATE CSV
+============================================================ */
+function downloadSiswaTemplate(){
+  const rows = [
+    ['No','Nama Siswa','Kelas','Wali Kelas'],
+    ['1','Contoh: Ayu Rima', kelasAll[0]?.nama || 'Kelas A - Kancil', guruAll.find(g=>String(g.kelas_id)===String(kelasAll[0]?.id))?.nama || 'Nama Wali Kelas'],
+    ['2','Contoh: Safa Marwah', kelasAll[0]?.nama || 'Kelas A - Kancil', guruAll.find(g=>String(g.kelas_id)===String(kelasAll[0]?.id))?.nama || 'Nama Wali Kelas'],
+  ];
+  const csv = rows.map(r=> r.map(v=> '"'+String(v).replace(/"/g,'""')+'"').join(',')).join('\r\n');
+  const blob = new Blob(['\uFEFF'+csv], {type:'text/csv;charset=utf-8;'});
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement('a');
+  a.href = url; a.download = 'template-data-siswa.csv';
+  document.body.appendChild(a); a.click(); document.body.removeChild(a);
+  URL.revokeObjectURL(url);
+  toast('Template terdownload. Kolom "Wali Kelas" hanya untuk referensi Anda, kelas ditentukan dari kolom "Kelas".');
+}
+function handleImportSiswa(ev){
+  const file = ev.target.files[0]; if(!file) return;
+  const statusBox = document.getElementById('importSiswaStatus');
+  statusBox.textContent = 'Membaca file...';
+  Papa.parse(file, {
+    header: true,
+    skipEmptyLines: true,
+    complete: async (results)=>{
+      const rows = results.data;
+      if(!rows.length){ statusBox.textContent = 'File kosong atau format tidak sesuai template.'; return; }
+      let sukses = 0, gagalKelas = [], gagalNama = 0;
+      for(const row of rows){
+        const nama = (row['Nama Siswa']||'').trim();
+        const kelasText = (row['Kelas']||'').trim();
+        if(!nama){ gagalNama++; continue; }
+        const kelasMatch = kelasAll.find(k=> k.nama.toLowerCase().trim() === kelasText.toLowerCase());
+        if(kelasText && !kelasMatch){ gagalKelas.push(nama+' (kelas "'+kelasText+'" tidak ditemukan)'); continue; }
+        try{
+          await sb('siswa', {method:'POST', body:JSON.stringify({
+            nama, kelas_id: kelasMatch ? kelasMatch.id : null, parent_token: genToken()
+          })});
+          sukses++;
+        }catch(e){ gagalKelas.push(nama+' (gagal simpan: '+e.message+')'); }
+      }
+      let msg = `✅ ${sukses} siswa berhasil ditambahkan.`;
+      if(gagalNama) msg += ` ${gagalNama} baris dilewati (nama kosong).`;
+      if(gagalKelas.length) msg += ` Gagal: ${gagalKelas.join('; ')}`;
+      statusBox.textContent = msg;
+      toast(sukses+' siswa berhasil diimport');
+      ev.target.value = '';
+      await loadSiswa(); renderSiswaList(); renderPresensiList();
+    },
+    error: (err)=>{ statusBox.textContent = 'Gagal membaca file: '+err.message; }
+  });
 }
 
 /* ============================================================
