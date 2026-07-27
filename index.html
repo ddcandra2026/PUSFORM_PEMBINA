@@ -653,7 +653,7 @@ let activeChatKelasId = null;
 let chatChannel = null;
 
 // ===== Notifikasi =====
-let notifChatChannel = null, notifBroadcastChannel = null, notifPresensiChannel = null;
+let notifChatChannel = null, notifBroadcastChannel = null, notifPresensiChannel = null, siswaSyncChannel = null;
 let notifCounts = { chat:0, broadcast:0, presensi:0 };
 let notifLastRead = {};
 
@@ -813,6 +813,7 @@ function logout(){
   if(notifChatChannel) sbClient.removeChannel(notifChatChannel);
   if(notifBroadcastChannel) sbClient.removeChannel(notifBroadcastChannel);
   if(notifPresensiChannel) sbClient.removeChannel(notifPresensiChannel);
+  if(siswaSyncChannel) sbClient.removeChannel(siswaSyncChannel);
   document.getElementById('app').classList.add('hidden');
   document.getElementById('loginScreen').classList.remove('hidden');
   document.getElementById('loginStep2').classList.add('hidden');
@@ -887,7 +888,8 @@ async function loadBrandingFromDb(){
       kop_alamat: map.kop_alamat || '',
       kop_telp: map.kop_telp || '',
       theme_primary: map.theme_primary || '',
-      theme_primary_dk: map.theme_primary_dk || ''
+      theme_primary_dk: map.theme_primary_dk || '',
+      theme_yellow: map.theme_yellow || ''
     };
     localStorage.setItem('tkBranding', JSON.stringify(branding));
   }catch(e){ /* pengaturan table belum ada / offline: pakai cache lokal */ }
@@ -915,18 +917,20 @@ async function upsertPengaturan(key, value){
    TEMA WARNA
 ============================================================ */
 const THEME_PRESETS = [
-  { id:'peach',    label:'Peach',    main:'#FF7B54', dk:'#E8623C' },
-  { id:'mint',     label:'Mint',     main:'#29B6A8', dk:'#1F9C90' },
-  { id:'sky',      label:'Sky',      main:'#5B9BD5', dk:'#3F7FB8' },
-  { id:'lavender', label:'Lavender', main:'#9B87F5', dk:'#7A63E0' },
-  { id:'sunny',    label:'Sunny',    main:'#FFB648', dk:'#E89A2C' },
-  { id:'rose',     label:'Rose',     main:'#F0699A', dk:'#D94A80' },
+  { id:'peach',    label:'Peach',    main:'#FF7B54', dk:'#E8623C', yellow:'#FFC857' },
+  { id:'mint',     label:'Mint',     main:'#29B6A8', dk:'#1F9C90', yellow:'#7FE3C6' },
+  { id:'sky',      label:'Sky',      main:'#5B9BD5', dk:'#3F7FB8', yellow:'#8FD3F4' },
+  { id:'lavender', label:'Lavender', main:'#9B87F5', dk:'#7A63E0', yellow:'#C9BFF7' },
+  { id:'sunny',    label:'Sunny',    main:'#FFB648', dk:'#E89A2C', yellow:'#FFE29A' },
+  { id:'rose',     label:'Rose',     main:'#F0699A', dk:'#D94A80', yellow:'#F7B6CE' },
 ];
 function applyThemeColor(){
   const main = branding.theme_primary || '#FF7B54';
   const dk = branding.theme_primary_dk || '#E8623C';
+  const yellow = branding.theme_yellow || '#FFC857';
   document.documentElement.style.setProperty('--coral', main);
   document.documentElement.style.setProperty('--coral-dk', dk);
+  document.documentElement.style.setProperty('--yellow', yellow);
 }
 function renderThemeSwatches(){
   const grid = document.getElementById('themeSwatchGrid');
@@ -934,19 +938,21 @@ function renderThemeSwatches(){
   const current = branding.theme_primary || '#FF7B54';
   grid.innerHTML = THEME_PRESETS.map(p=>`
     <div class="theme-swatch-item" onclick="selectTheme('${p.id}')">
-      <div class="theme-swatch ${p.main.toLowerCase()===current.toLowerCase()?'selected':''}" style="background:linear-gradient(135deg,${p.main},${p.dk});"></div>
+      <div class="theme-swatch ${p.main.toLowerCase()===current.toLowerCase()?'selected':''}" style="background:linear-gradient(135deg,${p.main},${p.yellow});"></div>
       <div class="theme-swatch-label">${p.label}</div>
     </div>`).join('');
 }
 async function selectTheme(id){
   const p = THEME_PRESETS.find(x=>x.id===id); if(!p) return;
-  branding.theme_primary = p.main; branding.theme_primary_dk = p.dk;
+  branding.theme_primary = p.main; branding.theme_primary_dk = p.dk; branding.theme_yellow = p.yellow;
   applyThemeColor();
   renderThemeSwatches();
+  renderLogoEverywhere();
   localStorage.setItem('tkBranding', JSON.stringify(branding));
   try{
     await upsertPengaturan('theme_primary', p.main);
     await upsertPengaturan('theme_primary_dk', p.dk);
+    await upsertPengaturan('theme_yellow', p.yellow);
     toast('Tema warna diubah menjadi '+p.label);
   }catch(e){ toast('Tersimpan lokal, gagal sinkron: '+e.message); }
 }
@@ -1722,6 +1728,7 @@ function setupNotifications(){
   if(notifChatChannel) sbClient.removeChannel(notifChatChannel);
   if(notifBroadcastChannel) sbClient.removeChannel(notifBroadcastChannel);
   if(notifPresensiChannel) sbClient.removeChannel(notifPresensiChannel);
+  if(siswaSyncChannel) sbClient.removeChannel(siswaSyncChannel);
 
   notifChatChannel = sbClient.channel('notif-pesan')
     .on('postgres_changes', {event:'INSERT', schema:'public', table:'pesan'}, payload=>{
@@ -1744,6 +1751,14 @@ function setupNotifications(){
       if(!row || !myKelasIds.includes(row.kelas_id)) return;
       if(payload.eventType==='INSERT'){ notifCounts.presensi++; renderNotifDot(); playNotifSound(); }
       // Refresh live kalau layar Presensi sedang dibuka, tanpa perlu refresh manual
+      if(document.getElementById('screenPresensi')?.classList.contains('active')) renderPresensiList();
+    }).subscribe();
+
+  siswaSyncChannel = sbClient.channel('siswa-sync')
+    .on('postgres_changes', {event:'UPDATE', schema:'public', table:'siswa'}, async payload=>{
+      // Sinkron otomatis kalau ada perubahan data siswa (mis. foto profil di-upload orang tua)
+      await loadSiswa();
+      if(document.getElementById('screenSiswa')?.classList.contains('active')) renderSiswaList();
       if(document.getElementById('screenPresensi')?.classList.contains('active')) renderPresensiList();
     }).subscribe();
 
