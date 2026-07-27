@@ -116,19 +116,19 @@ main{flex:1;padding:16px 16px 100px;position:relative;z-index:1;}
 /* CARD */
 .card{
   background:var(--surface);border:1px solid var(--border);border-radius:var(--r);
-  padding:18px;margin-bottom:14px;box-shadow:0 2px 10px rgba(43,33,64,0.04);
+  padding:18px;margin-bottom:14px;box-shadow:0 3px 14px rgba(43,33,64,0.06);
 }
-.card-title{font-family:var(--display);font-weight:700;font-size:16px;margin-bottom:12px;display:flex;align-items:center;gap:8px;}
+.card-title{font-family:var(--display);font-weight:800;font-size:16.5px;margin-bottom:12px;display:flex;align-items:center;gap:8px;letter-spacing:-0.1px;}
 
 /* BUTTONS */
 .btn{
   display:inline-flex;align-items:center;justify-content:center;gap:8px;
   padding:13px 20px;border-radius:var(--r-sm);font-weight:700;font-size:14.5px;
-  transition:transform .15s ease, box-shadow .15s ease;
+  letter-spacing:0.1px;transition:transform .15s ease, box-shadow .15s ease, filter .15s ease;
 }
-.btn:active{transform:scale(0.97);}
-.btn-primary{background:linear-gradient(135deg,var(--coral),var(--coral-dk));color:#fff;box-shadow:0 6px 16px rgba(255,123,84,0.35);}
-.btn-mint{background:linear-gradient(135deg,var(--mint),#1f9c90);color:#fff;box-shadow:0 6px 16px rgba(41,182,168,0.32);}
+.btn:active{transform:scale(0.97);filter:brightness(0.97);}
+.btn-primary{background:linear-gradient(135deg,var(--coral),var(--coral-dk));color:#fff;box-shadow:0 6px 16px rgba(255,123,84,0.38);}
+.btn-mint{background:linear-gradient(135deg,var(--mint),#1f9c90);color:#fff;box-shadow:0 6px 16px rgba(41,182,168,0.35);}
 .btn-outline{background:var(--surface2);color:var(--text);border:1.5px solid var(--border2);}
 .btn-block{width:100%;}
 .btn-sm{padding:8px 14px;font-size:12.5px;border-radius:10px;}
@@ -255,7 +255,7 @@ main{flex:1;padding:16px 16px 100px;position:relative;z-index:1;}
 .row > *{flex:1;}
 .text-muted{color:var(--text2);font-size:12.5px;}
 .mt8{margin-top:8px;}.mt12{margin-top:12px;}.mt16{margin-top:16px;}
-.section-title{font-family:var(--display);font-weight:800;font-size:21px;margin-bottom:14px;}
+.section-title{font-family:var(--display);font-weight:800;font-size:22px;margin-bottom:14px;letter-spacing:-0.3px;}
 .tabs{display:flex;gap:8px;overflow-x:auto;padding-bottom:4px;margin-bottom:14px;}
 .tab-pill{padding:8px 15px;border-radius:100px;background:var(--surface2);font-size:12.5px;font-weight:700;color:var(--text2);white-space:nowrap;border:1.5px solid transparent;}
 .tab-pill.active{background:var(--coral);color:#fff;}
@@ -265,6 +265,10 @@ main{flex:1;padding:16px 16px 100px;position:relative;z-index:1;}
 .logo-preview{width:60px;height:60px;border-radius:16px;background:var(--surface2);border:1.5px dashed var(--border2);display:flex;align-items:center;justify-content:center;font-size:24px;overflow:hidden;flex-shrink:0;}
 .logo-preview img{width:100%;height:100%;object-fit:cover;}
 .nfc-icon{width:20px;height:20px;}
+.stat-mini-row{display:flex;gap:10px;margin-bottom:14px;}
+.stat-mini{flex:1;background:var(--surface);border:1px solid var(--border);border-top:3px solid var(--sc);border-radius:var(--r-sm);padding:12px 6px;text-align:center;}
+.stat-mini-val{font-family:var(--display);font-weight:800;font-size:22px;color:var(--sc);line-height:1;}
+.stat-mini-label{font-size:10px;color:var(--text2);font-weight:700;margin-top:4px;}
 .btn-link-subtle{font-size:11.5px;color:var(--muted);font-weight:600;text-decoration:underline;text-underline-offset:2px;}
 .theme-swatch-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:14px;}
 .theme-swatch-item{display:flex;flex-direction:column;align-items:center;gap:5px;cursor:pointer;}
@@ -369,6 +373,7 @@ main{flex:1;padding:16px 16px 100px;position:relative;z-index:1;}
     <!-- ===== PRESENSI ===== -->
     <div class="screen active" id="screenPresensi">
       <div class="section-title">Presensi Hari Ini 👋</div>
+      <div id="presensiStatsRow"></div>
       <div class="tabs" id="presensiKelasTabs"></div>
 
       <button class="btn btn-mint btn-block" id="nfcScanBtn" onclick="scanNfcPresensi()" style="margin-bottom:14px;">
@@ -695,6 +700,26 @@ function genToken(){
 }
 
 /* ============================================================
+   AVATAR — inisial berwarna (dipakai kalau belum ada foto)
+============================================================ */
+const AVATAR_COLORS = ['#FF7B54','#29B6A8','#5B9BD5','#9B87F5','#EF9F27','#F0699A','#3F7FB8','#1F9C90'];
+function avatarColor(name){
+  let hash = 0;
+  for(let i=0;i<(name||'?').length;i++) hash = (name.charCodeAt(i) + ((hash<<5)-hash)) | 0;
+  return AVATAR_COLORS[Math.abs(hash) % AVATAR_COLORS.length];
+}
+function avatarInitials(name){
+  const parts = (name||'?').trim().split(/\s+/);
+  if(parts.length===1) return parts[0].slice(0,2).toUpperCase();
+  return (parts[0][0]+parts[1][0]).toUpperCase();
+}
+function avatarHtml(name, photoUrl, fontSize){
+  fontSize = fontSize || 15;
+  if(photoUrl) return `<img src="${photoUrl}" style="width:100%;height:100%;object-fit:cover;border-radius:inherit;">`;
+  return `<div style="width:100%;height:100%;border-radius:inherit;background:${avatarColor(name)};display:flex;align-items:center;justify-content:center;color:#fff;font-weight:800;font-size:${fontSize}px;letter-spacing:0.3px;">${avatarInitials(name)}</div>`;
+}
+
+/* ============================================================
    KONEKSI SETUP (dari login screen)
 ============================================================ */
 function showConnectSetup(){
@@ -804,7 +829,7 @@ async function enterApp(){
   document.getElementById('app').classList.remove('hidden');
   document.getElementById('setGuruName').textContent = currentGuru.nama;
   document.getElementById('setGuruRole').textContent = currentGuru.peran==='admin' ? 'Admin' : ('Wali Kelas' + (currentGuru.kelas?.nama ? ' · '+currentGuru.kelas.nama : ''));
-  document.getElementById('setGuruAvatar').innerHTML = currentGuru.foto_url ? `<img src="${currentGuru.foto_url}" style="width:100%;height:100%;object-fit:cover;">` : '👤';
+  document.getElementById('setGuruAvatar').innerHTML = avatarHtml(currentGuru.nama, currentGuru.foto_url, 19);
   applyBranding();
   await loadKelas();
   await loadSiswa();
@@ -1011,7 +1036,7 @@ function renderSiswaList(){
   if(!list.length){ box.innerHTML = emptyState('🎒','Belum ada siswa','Tambahkan siswa baru di sini'); return; }
   box.innerHTML = list.map(s=>`
     <div class="card" style="padding:12px 14px;display:flex;align-items:center;gap:12px;">
-      <div class="pick-avatar">🧒</div>
+      <div class="pick-avatar" style="overflow:hidden;">${avatarHtml(s.nama, s.foto_url, 14)}</div>
       <div style="flex:1;min-width:0;">
         <div class="pick-name">${s.nama}</div>
         <div class="pick-sub">${s.kelas?.nama||'Belum ada kelas'} ${s.nisn?'· NISN '+s.nisn:''}</div>
@@ -1163,6 +1188,7 @@ async function renderPresensiList(){
   if(currentGuru.peran!=='admin') list = list.filter(s=>s.kelas_id===currentGuru.kelas_id);
   if(activePresensiKelas!=='all') list = list.filter(s=>String(s.kelas_id)===String(activePresensiKelas));
   if(q) list = list.filter(s=>s.nama.toLowerCase().includes(q));
+  renderPresensiStatsRow(list);
   const box = document.getElementById('presensiList');
   if(!list.length){ box.innerHTML = emptyState('🐣','Belum ada siswa di kelas ini',''); return; }
   box.innerHTML = list.map(s=>{
@@ -1181,11 +1207,27 @@ async function renderPresensiList(){
         : `<button class="btn btn-sm btn-locked" disabled title="Wajib pakai kartu NFC">🔒 Check-Out</button>`;
     } else actionBtn = `<span class="chip chip-ok">Selesai ✓</span>`;
     return `<div class="cubby-row">
-      <div class="cubby ${cubbyClass}"><div class="cubby-door"></div><span>🧒</span></div>
+      <div class="cubby ${cubbyClass}"><div class="cubby-door"></div><div style="width:34px;height:34px;border-radius:50%;overflow:hidden;">${avatarHtml(s.nama, s.foto_url, 13)}</div></div>
       <div class="cubby-info"><div class="cubby-name">${s.nama}</div><div class="cubby-meta">${meta}</div></div>
       <div class="cubby-action">${actionBtn}</div>
     </div>`;
   }).join('');
+}
+function renderPresensiStatsRow(list){
+  let hadir=0, diSekolah=0, pulang=0;
+  list.forEach(s=>{
+    const r = presensiHariIni[s.id];
+    if(r && r.jam_masuk){
+      hadir++;
+      if(r.jam_pulang) pulang++; else diSekolah++;
+    }
+  });
+  document.getElementById('presensiStatsRow').innerHTML = `
+    <div class="stat-mini-row">
+      <div class="stat-mini" style="--sc:var(--mint);"><div class="stat-mini-val">${hadir}</div><div class="stat-mini-label">HADIR</div></div>
+      <div class="stat-mini" style="--sc:var(--sky);"><div class="stat-mini-val">${diSekolah}</div><div class="stat-mini-label">DI SEKOLAH</div></div>
+      <div class="stat-mini" style="--sc:var(--purple);"><div class="stat-mini-val">${pulang}</div><div class="stat-mini-label">SUDAH PULANG</div></div>
+    </div>`;
 }
 async function checkIn(siswaId, isManual){
   const s = siswaAll.find(x=>String(x.id)===String(siswaId));
