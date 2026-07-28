@@ -377,7 +377,7 @@ main{flex:1;padding:16px 16px 100px;position:relative;z-index:1;}
       <div id="presensiStatsRow"></div>
       <div class="tabs" id="presensiKelasTabs"></div>
 
-      <button class="btn btn-mint btn-block" id="nfcScanBtn" onclick="scanNfcPresensi()" style="margin-bottom:14px;">
+      <button class="btn btn-primary btn-block" id="nfcScanBtn" onclick="scanNfcPresensi()" style="margin-bottom:14px;">
         <svg class="nfc-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M6 8.5a7 7 0 0 1 0 7"/><path d="M9.5 5.5a11.5 11.5 0 0 1 0 13"/><path d="M13 3a15.5 15.5 0 0 1 0 18"/><circle cx="3" cy="12" r="1.4" fill="currentColor" stroke="none"/></svg>
         Tap Kartu NFC untuk Check-In / Out
       </button>
@@ -409,7 +409,7 @@ main{flex:1;padding:16px 16px 100px;position:relative;z-index:1;}
         <div class="text-muted" style="margin-bottom:10px;">Download template, isi di Excel/Spreadsheet, lalu upload lagi ke sini.</div>
         <div class="row">
           <button class="btn btn-outline" onclick="downloadSiswaTemplate()">⬇️ Download Template</button>
-          <label class="btn btn-mint" for="importSiswaInput" style="cursor:pointer;text-align:center;">⬆️ Upload Template</label>
+          <label class="btn btn-primary" for="importSiswaInput" style="cursor:pointer;text-align:center;">⬆️ Upload Template</label>
         </div>
         <input type="file" id="importSiswaInput" accept=".csv" class="hidden" onchange="handleImportSiswa(event)">
         <div id="importSiswaStatus" class="text-muted" style="margin-top:8px;"></div>
@@ -459,7 +459,7 @@ main{flex:1;padding:16px 16px 100px;position:relative;z-index:1;}
             <option value="alpa">Alpa</option>
           </select>
         </div>
-        <button class="btn btn-mint btn-block" onclick="loadRekap()">Tampilkan Rekap</button>
+        <button class="btn btn-primary btn-block" onclick="loadRekap()">Tampilkan Rekap</button>
       </div>
       <div class="card hidden" id="rekapTerlambatCard">
         <div class="card-title">🔴 Sering Terlambat Bulan Ini</div>
@@ -1013,19 +1013,20 @@ async function loadKelas(){
 function renderKelasTabs(){
   const isAdmin = currentGuru.peran==='admin';
   const myKelas = isAdmin ? kelasAll : kelasAll.filter(k=>k.id===currentGuru.kelas_id);
+  const dot = '<span style="display:inline-block;width:7px;height:7px;border-radius:50%;background:var(--coral);margin-right:5px;vertical-align:middle;"></span>';
 
   const presTabs = ['<div class="tab-pill active" data-v="all" onclick="setPresensiTab(this,\'all\')">Semua</div>']
-    .concat(myKelas.map(k=>`<div class="tab-pill" data-v="${k.id}" onclick="setPresensiTab(this,'${k.id}')">${k.ikon||''} ${k.nama}</div>`));
-  document.getElementById('presensiKelasTabs').innerHTML = isAdmin ? presTabs.join('') : myKelas.map((k,i)=>`<div class="tab-pill${i===0?' active':''}" data-v="${k.id}" onclick="setPresensiTab(this,'${k.id}')">${k.ikon||''} ${k.nama}</div>`).join('');
+    .concat(myKelas.map(k=>`<div class="tab-pill" data-v="${k.id}" onclick="setPresensiTab(this,'${k.id}')">${dot}${k.nama}</div>`));
+  document.getElementById('presensiKelasTabs').innerHTML = isAdmin ? presTabs.join('') : myKelas.map((k,i)=>`<div class="tab-pill${i===0?' active':''}" data-v="${k.id}" onclick="setPresensiTab(this,'${k.id}')">${dot}${k.nama}</div>`).join('');
   if(!isAdmin && myKelas[0]) activePresensiKelas = String(myKelas[0].id);
 
   document.getElementById('siswaKelasTabs').innerHTML = presTabs.join('').replace(/setPresensiTab/g,'setSiswaTab');
 
-  const chatTabs = myKelas.map((k,i)=>`<div class="tab-pill${i===0?' active':''}" data-v="${k.id}" onclick="setChatTab(this,'${k.id}')">${k.ikon||''} ${k.nama}</div>`);
+  const chatTabs = myKelas.map((k,i)=>`<div class="tab-pill${i===0?' active':''}" data-v="${k.id}" onclick="setChatTab(this,'${k.id}')">${dot}${k.nama}</div>`);
   document.getElementById('chatKelasTabs').innerHTML = chatTabs.join('');
   if(myKelas[0]) activeChatKelasId = myKelas[0].id;
 
-  const kelasOpts = kelasAll.map(k=>`<option value="${k.id}">${k.ikon||''} ${k.nama}</option>`).join('');
+  const kelasOpts = kelasAll.map(k=>`<option value="${k.id}">${k.nama}</option>`).join('');
   document.getElementById('fKelas').innerHTML = kelasOpts;
   document.getElementById('newGuruKelas').innerHTML = kelasOpts;
 }
@@ -1212,7 +1213,7 @@ async function renderPresensiList(){
     let actionBtn = '';
     if(state==='closed'){
       actionBtn = emergencyMode
-        ? `<button class="btn btn-sm btn-mint" onclick="checkIn('${s.id}', true)">Check-In</button>`
+        ? `<button class="btn btn-sm btn-primary" onclick="checkIn('${s.id}', true)">Check-In</button>`
         : `<button class="btn btn-sm btn-locked" disabled title="Wajib pakai kartu NFC">🔒 Check-In</button>`;
     } else if(state==='open'){
       actionBtn = emergencyMode
@@ -1237,9 +1238,9 @@ function renderPresensiStatsRow(list){
   });
   document.getElementById('presensiStatsRow').innerHTML = `
     <div class="stat-mini-row">
-      <div class="stat-mini" style="--sc:var(--mint);"><div class="stat-mini-val">${hadir}</div><div class="stat-mini-label">HADIR</div></div>
-      <div class="stat-mini" style="--sc:var(--sky);"><div class="stat-mini-val">${diSekolah}</div><div class="stat-mini-label">DI SEKOLAH</div></div>
-      <div class="stat-mini" style="--sc:var(--purple);"><div class="stat-mini-val">${pulang}</div><div class="stat-mini-label">SUDAH PULANG</div></div>
+      <div class="stat-mini" style="--sc:var(--coral);"><div class="stat-mini-val">${hadir}</div><div class="stat-mini-label">HADIR</div></div>
+      <div class="stat-mini" style="--sc:var(--coral);"><div class="stat-mini-val">${diSekolah}</div><div class="stat-mini-label">DI SEKOLAH</div></div>
+      <div class="stat-mini" style="--sc:var(--coral);"><div class="stat-mini-val">${pulang}</div><div class="stat-mini-label">SUDAH PULANG</div></div>
     </div>`;
 }
 async function checkIn(siswaId, isManual){
@@ -1392,7 +1393,7 @@ function populateRekapFilters(){
   const isAdmin = currentGuru.peran==='admin';
   const myKelas = isAdmin ? kelasAll : kelasAll.filter(k=>k.id===currentGuru.kelas_id);
   const kelasSel = document.getElementById('rekapKelas');
-  kelasSel.innerHTML = '<option value="all">Semua Kelas</option>' + myKelas.map(k=>`<option value="${k.id}">${k.ikon||''} ${k.nama}</option>`).join('');
+  kelasSel.innerHTML = '<option value="all">Semua Kelas</option>' + myKelas.map(k=>`<option value="${k.id}">${k.nama}</option>`).join('');
   if(!isAdmin && myKelas[0]) kelasSel.value = String(myKelas[0].id);
   kelasSel.onchange = populateRekapSiswaOptions;
   populateRekapSiswaOptions();
@@ -1834,7 +1835,7 @@ document.addEventListener('click', (e)=>{
 function renderSettingLists(){
   document.getElementById('kelasManageList').innerHTML = kelasAll.map(k=>`
     <div class="row" style="align-items:center;margin-bottom:8px;gap:6px;">
-      <span class="chip chip-kelas" style="flex:1;">${k.ikon||''} ${k.nama}</span>
+      <span class="chip chip-kelas" style="flex:1;"><span style="display:inline-block;width:7px;height:7px;border-radius:50%;background:var(--coral);margin-right:6px;vertical-align:middle;"></span>${k.nama}</span>
       <button class="btn-sm btn-outline btn" style="flex:0 0 auto;" onclick="editKelasName('${k.id}','${k.nama.replace(/'/g,"\\'")}')">✏️</button>
       <button class="btn-sm btn-outline btn" style="flex:0 0 auto;" onclick="deleteKelas('${k.id}','${k.nama.replace(/'/g,"\\'")}')">🗑️</button>
     </div>`).join('') || '<p class="text-muted">Belum ada kelas</p>';
