@@ -1881,12 +1881,19 @@ function renderSettingLists(){
   document.getElementById('guruManageList').innerHTML = guruAll.map(g=>`
     <div class="row" style="align-items:center;margin-bottom:8px;gap:6px;">
       <span class="chip chip-kelas" style="flex:1;">${g.super_admin_pin?'🔒 ':''}${g.nama} · ${g.peran==='admin'?'Admin':(g.kelas?.nama||'-')}</span>
+      <button class="btn-sm btn-outline btn" style="flex:0 0 auto;" onclick="viewGuruPin('${g.id}')">👁️</button>
       <button class="btn-sm btn-outline btn" style="flex:0 0 auto;" onclick="editGuruName('${g.id}','${g.nama.replace(/'/g,"\\'")}')">✏️</button>
       <button class="btn-sm btn-outline btn" style="flex:0 0 auto;" onclick="deleteGuru('${g.id}','${g.nama.replace(/'/g,"\\'")}')">🗑️</button>
     </div>`).join('') || '<p class="text-muted">Belum ada guru</p>';
   document.getElementById('newGuruPeran').onchange = e=>{
     document.getElementById('newGuruKelasWrap').classList.toggle('hidden', e.target.value==='admin');
   };
+}
+function viewGuruPin(id){
+  if(!checkSuperAdminPin(id)) return;
+  const g = guruAll.find(x=>String(x.id)===String(id));
+  if(!g) return;
+  alert('PIN saat ini untuk '+g.nama+':\n\n'+g.pin);
 }
 async function editKelasName(id, currentName){
   const newName = prompt('Ubah nama kelas:', currentName);
