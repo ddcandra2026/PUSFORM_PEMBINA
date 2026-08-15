@@ -1438,15 +1438,14 @@ async function loadInternalChatMessages(){
 }
 function renderInternalChat(rows){
   const box = document.getElementById('chatInternalScroll');
-  if(!rows.length){ box.innerHTML = emptyState('👥','Belum ada obrolan','Mulai sapa sesama guru & kepala sekolah'); return; }
+  if(!rows.length){ box.innerHTML = emptyState('👥','Belum ada obrolan','Mulai sapa sesama guru'); return; }
   box.innerHTML = rows.map(m=>{
     const isMe = String(m.pengirim_id)===String(currentGuru.id);
     const cls = isMe?'bubble-out':'bubble-in';
     const img = m.foto_url ? `<img src="${m.foto_url}">` : '';
     const time = new Date(m.created_at).toLocaleTimeString('id-ID',{hour:'2-digit',minute:'2-digit'});
-    const roleTag = m.pengirim_peran==='admin' ? ' · Kepala Sekolah' : '';
     return `<div class="bubble ${cls}">
-      <div class="bubble-sender">${m.pengirim_nama}${roleTag}</div>
+      <div class="bubble-sender">${m.pengirim_nama}</div>
       ${m.isi_teks?`<div>${escapeHtml(m.isi_teks)}</div>`:''}${img}
       <div class="bubble-time">${time}</div>
     </div>`;
