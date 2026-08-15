@@ -258,6 +258,10 @@ main{flex:1;padding:16px 16px 100px;position:relative;z-index:1;}
 .mt8{margin-top:8px;}.mt12{margin-top:12px;}.mt16{margin-top:16px;}
 .section-title{font-family:var(--display);font-weight:800;font-size:22px;margin-bottom:14px;letter-spacing:-0.3px;}
 .tabs{display:flex;gap:8px;overflow-x:auto;padding-bottom:4px;margin-bottom:14px;}
+.chat-mode-toggle{display:flex;gap:8px;background:var(--surface2);border-radius:100px;padding:5px;margin-bottom:16px;}
+.chat-mode-btn{flex:1;padding:10px 8px;border-radius:100px;font-weight:700;font-size:13px;color:var(--text2);text-align:center;position:relative;}
+.chat-mode-btn.active{background:linear-gradient(135deg,var(--coral),var(--coral-dk));color:#fff;box-shadow:0 4px 12px rgba(var(--coral-rgb),0.35);}
+.chat-mode-dot{position:absolute;top:2px;right:10px;width:11px;height:11px;border-radius:50%;background:#FF3B30;border:2px solid var(--surface2);box-shadow:0 0 0 2px rgba(255,59,48,0.3);animation:notifPulse 1.6s ease infinite;}
 .tab-pill{padding:8px 15px;border-radius:100px;background:var(--surface2);font-size:12.5px;font-weight:700;color:var(--text2);white-space:nowrap;border:1.5px solid transparent;position:relative;}
 .tab-dot{position:absolute;top:-3px;right:-3px;width:12px;height:12px;border-radius:50%;background:#FF3B30;border:2px solid var(--bg);box-shadow:0 0 0 2px rgba(255,59,48,0.3);animation:notifPulse 1.6s ease infinite;}
 .tab-pill.active{background:var(--coral);color:#fff;}
@@ -426,16 +430,38 @@ main{flex:1;padding:16px 16px 100px;position:relative;z-index:1;}
 
     <!-- ===== CHAT ===== -->
     <div class="screen" id="screenChat">
-      <div class="section-title">Chat Kelas 💬</div>
-      <div class="tabs" id="chatKelasTabs"></div>
-      <div class="card" style="padding:14px;">
-        <div class="chat-wrap">
-          <div class="chat-scroll" id="chatScroll"></div>
-          <div class="chat-input-row">
-            <label class="icon-btn" for="chatPhotoInput">📷</label>
-            <input type="file" id="chatPhotoInput" accept="image/*" class="hidden" onchange="handleChatPhoto(event)">
-            <input type="text" id="chatTextInput" placeholder="Tulis pesan..." onkeydown="if(event.key==='Enter')sendChatMessage()">
-            <button class="send-btn" onclick="sendChatMessage()">➤</button>
+      <div class="section-title">Chat 💬</div>
+      <div class="chat-mode-toggle">
+        <button class="chat-mode-btn active" id="chatModeKelasBtn" onclick="switchChatMode('kelas')">👨‍👩‍👧 Wali Murid</button>
+        <button class="chat-mode-btn" id="chatModeInternalBtn" onclick="switchChatMode('internal')">👥 Sesama Guru</button>
+      </div>
+
+      <div id="chatKelasWrap">
+        <div class="tabs" id="chatKelasTabs"></div>
+        <div class="card" style="padding:14px;">
+          <div class="chat-wrap">
+            <div class="chat-scroll" id="chatScroll"></div>
+            <div class="chat-input-row">
+              <label class="icon-btn" for="chatPhotoInput">📷</label>
+              <input type="file" id="chatPhotoInput" accept="image/*" class="hidden" onchange="handleChatPhoto(event)">
+              <input type="text" id="chatTextInput" placeholder="Tulis pesan..." onkeydown="if(event.key==='Enter')sendChatMessage()">
+              <button class="send-btn" onclick="sendChatMessage()">➤</button>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <div id="chatInternalWrap" class="hidden">
+        <div class="text-muted" style="margin-bottom:12px;">Ruang obrolan bersama untuk semua guru &amp; kepala sekolah. Semua staf bisa melihat dan membalas pesan di sini.</div>
+        <div class="card" style="padding:14px;">
+          <div class="chat-wrap">
+            <div class="chat-scroll" id="chatInternalScroll"></div>
+            <div class="chat-input-row">
+              <label class="icon-btn" for="chatInternalPhotoInput">📷</label>
+              <input type="file" id="chatInternalPhotoInput" accept="image/*" class="hidden" onchange="handleInternalChatPhoto(event)">
+              <input type="text" id="chatInternalTextInput" placeholder="Tulis pesan ke sesama staf..." onkeydown="if(event.key==='Enter')sendInternalChatMessage()">
+              <button class="send-btn" onclick="sendInternalChatMessage()">➤</button>
+            </div>
           </div>
         </div>
       </div>
@@ -656,7 +682,7 @@ let chatChannel = null;
 
 // ===== Notifikasi =====
 let notifChatChannel = null, notifBroadcastChannel = null, notifPresensiChannel = null, siswaSyncChannel = null;
-let notifCounts = { chat:0, broadcast:0, presensi:0 };
+let notifCounts = { chat:0, broadcast:0, presensi:0, internal:0 };
 let notifLastRead = {};
 let notifChatUnread = {}; // { kelas_id: jumlah_belum_dibaca }
 
@@ -817,6 +843,8 @@ function logout(){
   if(notifBroadcastChannel) sbClient.removeChannel(notifBroadcastChannel);
   if(notifPresensiChannel) sbClient.removeChannel(notifPresensiChannel);
   if(siswaSyncChannel) sbClient.removeChannel(siswaSyncChannel);
+  if(notifInternalChannel) sbClient.removeChannel(notifInternalChannel);
+  if(internalChatChannel) sbClient.removeChannel(internalChatChannel);
   document.getElementById('app').classList.add('hidden');
   document.getElementById('loginScreen').classList.remove('hidden');
   document.getElementById('loginStep2').classList.add('hidden');
@@ -1390,6 +1418,92 @@ async function sendChatMessage(){
 }
 
 /* ============================================================
+   CHAT INTERNAL — ruang obrolan bersama semua guru & kepala sekolah
+============================================================ */
+let internalChatChannel = null;
+function switchChatMode(mode){
+  document.getElementById('chatModeKelasBtn').classList.toggle('active', mode==='kelas');
+  document.getElementById('chatModeInternalBtn').classList.toggle('active', mode==='internal');
+  document.getElementById('chatKelasWrap').classList.toggle('hidden', mode!=='kelas');
+  document.getElementById('chatInternalWrap').classList.toggle('hidden', mode!=='internal');
+  if(mode==='internal'){
+    loadInternalChatMessages();
+    subscribeInternalChat();
+    clearInternalChatUnread();
+  }
+}
+async function loadInternalChatMessages(){
+  const rows = await sb('pesan_internal?select=*&order=created_at.asc&limit=200');
+  renderInternalChat(rows);
+}
+function renderInternalChat(rows){
+  const box = document.getElementById('chatInternalScroll');
+  if(!rows.length){ box.innerHTML = emptyState('👥','Belum ada obrolan','Mulai sapa sesama guru & kepala sekolah'); return; }
+  box.innerHTML = rows.map(m=>{
+    const isMe = String(m.pengirim_id)===String(currentGuru.id);
+    const cls = isMe?'bubble-out':'bubble-in';
+    const img = m.foto_url ? `<img src="${m.foto_url}">` : '';
+    const time = new Date(m.created_at).toLocaleTimeString('id-ID',{hour:'2-digit',minute:'2-digit'});
+    const roleTag = m.pengirim_peran==='admin' ? ' · Kepala Sekolah' : '';
+    return `<div class="bubble ${cls}">
+      <div class="bubble-sender">${m.pengirim_nama}${roleTag}</div>
+      ${m.isi_teks?`<div>${escapeHtml(m.isi_teks)}</div>`:''}${img}
+      <div class="bubble-time">${time}</div>
+    </div>`;
+  }).join('');
+  const b = document.getElementById('chatInternalScroll'); if(b) b.scrollTop = b.scrollHeight;
+}
+function subscribeInternalChat(){
+  if(!sbClient) return;
+  if(internalChatChannel) sbClient.removeChannel(internalChatChannel);
+  internalChatChannel = sbClient.channel('pesan-internal-view')
+    .on('postgres_changes', {event:'INSERT', schema:'public', table:'pesan_internal'}, ()=>{
+      if(document.getElementById('chatInternalWrap') && !document.getElementById('chatInternalWrap').classList.contains('hidden')) loadInternalChatMessages();
+    }).subscribe();
+}
+let pendingInternalPhoto = null;
+function handleInternalChatPhoto(ev){
+  const file = ev.target.files[0]; if(!file) return;
+  const reader = new FileReader();
+  reader.onload = ()=>{
+    const img = new Image();
+    img.onload = ()=>{
+      const canvas = document.createElement('canvas');
+      const maxW = 640; const scale = Math.min(1, maxW/img.width);
+      canvas.width = img.width*scale; canvas.height = img.height*scale;
+      canvas.getContext('2d').drawImage(img,0,0,canvas.width,canvas.height);
+      pendingInternalPhoto = canvas.toDataURL('image/jpeg', 0.7);
+      sendInternalChatMessage();
+    };
+    img.src = reader.result;
+  };
+  reader.readAsDataURL(file);
+}
+async function sendInternalChatMessage(){
+  const text = document.getElementById('chatInternalTextInput').value.trim();
+  if(!text && !pendingInternalPhoto) return;
+  try{
+    await sb('pesan_internal', {method:'POST', body:JSON.stringify({
+      pengirim_id: currentGuru.id,
+      pengirim_nama: currentGuru.nama,
+      pengirim_peran: currentGuru.peran,
+      isi_teks: text || null,
+      foto_url: pendingInternalPhoto || null
+    })});
+    document.getElementById('chatInternalTextInput').value=''; pendingInternalPhoto=null;
+    loadInternalChatMessages();
+  }catch(e){ toast('Gagal kirim: '+e.message); }
+}
+function clearInternalChatUnread(){
+  if(notifCounts.internal>0){
+    notifCounts.internal = 0;
+    renderNotifDot();
+  }
+  document.getElementById('chatModeInternalBtn')?.querySelector('.chat-mode-dot')?.remove();
+  setNavDot('Chat', Object.values(notifChatUnread).some(v=>v>0));
+}
+
+/* ============================================================
    REKAP
 ============================================================ */
 function populateRekapFilters(){
@@ -1729,18 +1843,41 @@ function playNotifSound(){
   }catch(e){ /* Audio tidak didukung / diblokir browser, abaikan diam-diam */ }
 }
 
+let notifInternalChannel = null;
 function setupNotifications(){
   loadNotifLastRead();
-  notifCounts = { chat:0, broadcast:0, presensi:0 };
+  notifCounts = { chat:0, broadcast:0, presensi:0, internal:0 };
   notifChatUnread = {};
   const isAdmin = currentGuru.peran==='admin';
   const myKelasIds = (isAdmin ? kelasAll : kelasAll.filter(k=>k.id===currentGuru.kelas_id)).map(k=>k.id);
-  if(!myKelasIds.length){ renderNotifDot(); return; }
 
   if(notifChatChannel) sbClient.removeChannel(notifChatChannel);
   if(notifBroadcastChannel) sbClient.removeChannel(notifBroadcastChannel);
   if(notifPresensiChannel) sbClient.removeChannel(notifPresensiChannel);
   if(siswaSyncChannel) sbClient.removeChannel(siswaSyncChannel);
+  if(notifInternalChannel) sbClient.removeChannel(notifInternalChannel);
+
+  notifBroadcastChannel = sbClient.channel('notif-broadcast')
+    .on('postgres_changes', {event:'INSERT', schema:'public', table:'broadcast'}, payload=>{
+      notifCounts.broadcast++; renderNotifDot(); playNotifSound();
+      if(!document.getElementById('screenBroadcast')?.classList.contains('active')) setNavDot('Broadcast', true);
+    }).subscribe();
+
+  notifInternalChannel = sbClient.channel('notif-pesan-internal')
+    .on('postgres_changes', {event:'INSERT', schema:'public', table:'pesan_internal'}, payload=>{
+      const row = payload.new;
+      if(String(row.pengirim_id)===String(currentGuru.id)) return; // pesan sendiri, abaikan
+      playNotifSound();
+      const viewingInternal = document.getElementById('screenChat')?.classList.contains('active') && !document.getElementById('chatInternalWrap')?.classList.contains('hidden');
+      if(viewingInternal){ loadInternalChatMessages(); return; }
+      notifCounts.internal++;
+      renderNotifDot();
+      setNavDot('Chat', true);
+      let dot = document.querySelector('#chatModeInternalBtn .chat-mode-dot');
+      if(!dot){ dot = document.createElement('span'); dot.className='chat-mode-dot'; document.getElementById('chatModeInternalBtn').appendChild(dot); }
+    }).subscribe();
+
+  if(!myKelasIds.length){ renderNotifDot(); return; }
 
   notifChatChannel = sbClient.channel('notif-pesan')
     .on('postgres_changes', {event:'INSERT', schema:'public', table:'pesan'}, payload=>{
@@ -1754,12 +1891,6 @@ function setupNotifications(){
       renderNotifDot();
       renderChatTabDots();
       setNavDot('Chat', true);
-    }).subscribe();
-
-  notifBroadcastChannel = sbClient.channel('notif-broadcast')
-    .on('postgres_changes', {event:'INSERT', schema:'public', table:'broadcast'}, payload=>{
-      notifCounts.broadcast++; renderNotifDot(); playNotifSound();
-      if(!document.getElementById('screenBroadcast')?.classList.contains('active')) setNavDot('Broadcast', true);
     }).subscribe();
 
   notifPresensiChannel = sbClient.channel('notif-absensi')
@@ -1782,7 +1913,7 @@ function setupNotifications(){
   renderNotifDot();
 }
 function renderNotifDot(){
-  const total = notifCounts.chat + notifCounts.broadcast + notifCounts.presensi;
+  const total = notifCounts.chat + notifCounts.broadcast + notifCounts.presensi + notifCounts.internal;
   document.getElementById('notifDot').classList.toggle('hidden', total===0);
 }
 function setNavDot(screenName, show){
@@ -1824,6 +1955,7 @@ function renderNotifPanel(){
   const panel = document.getElementById('notifPanel');
   const items = [
     { key:'chat', icon:'💬', color:'var(--coral)', title:'Pesan Baru', sub:'Chat dari orang tua', count:notifCounts.chat, go:'Chat' },
+    { key:'internal', icon:'👥', color:'var(--purple)', title:'Chat Internal', sub:'Pesan dari sesama guru', count:notifCounts.internal, go:'Chat' },
     { key:'broadcast', icon:'📢', color:'var(--orange)', title:'Pengumuman Baru', sub:'Info dari sekolah', count:notifCounts.broadcast, go:'Broadcast' },
     { key:'presensi', icon:'✅', color:'var(--mint)', title:'Presensi Baru', sub:'Ada siswa check-in/out', count:notifCounts.presensi, go:'Presensi' },
   ];
@@ -1840,11 +1972,17 @@ function handleNotifClick(key, screenName){
   document.getElementById('notifPanel').classList.add('hidden');
   if(key==='chat'){
     switchScreen('Chat');
+    switchChatMode('kelas');
     const unreadKelasId = Object.keys(notifChatUnread).find(k=>notifChatUnread[k]>0);
     if(unreadKelasId){
       const tabEl = document.querySelector('#chatKelasTabs .tab-pill[data-v="'+unreadKelasId+'"]');
       if(tabEl) setChatTab(tabEl, unreadKelasId);
     }
+    return;
+  }
+  if(key==='internal'){
+    switchScreen('Chat');
+    switchChatMode('internal');
     return;
   }
   notifCounts[key] = 0;
