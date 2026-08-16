@@ -542,6 +542,12 @@ main{flex:1;padding:16px 16px 100px;position:relative;z-index:1;}
         <button class="btn btn-primary btn-block" onclick="changeMyPin()">Simpan PIN Baru</button>
       </div>
 
+      <div class="card">
+        <div class="card-title">🔔 Notifikasi Push</div>
+        <div class="text-muted" style="margin-bottom:12px;">Aktifkan supaya Anda tetap dapat notifikasi (bunyi + pop-up) untuk chat &amp; pengumuman baru, <strong>walau HP terkunci atau aplikasi tertutup</strong>.</div>
+        <button class="btn btn-outline btn-block" id="pushEnableBtn" onclick="subscribeToPushGuru()">🔔 Aktifkan Notifikasi Push</button>
+      </div>
+
       <div class="card" id="waliKelasNotice" style="display:none;">
         <div class="empty">
           <div class="empty-emoji">🔒</div>
@@ -687,6 +693,65 @@ let chatChannel = null;
 // ===== Notifikasi =====
 let notifChatChannel = null, notifBroadcastChannel = null, notifPresensiChannel = null, siswaSyncChannel = null;
 let notifCounts = { chat:0, broadcast:0, presensi:0, internal:0 };
+
+/* ============================================================
+   WEB PUSH NOTIFICATION — notifikasi walau HP terkunci / app tertutup
+============================================================ */
+const VAPID_PUBLIC_KEY = 'BLHOs0GshgcvvEtfv7SO8zJP9J1bKI1GffiZq6vhiESdqzDhhkvxJqAXtxdsTxWsW_ayQxtfbIkTEAAXkcc-unU';
+function urlBase64ToUint8Array(base64String){
+  const padding = '='.repeat((4 - base64String.length % 4) % 4);
+  const base64 = (base64String + padding).replace(/-/g,'+').replace(/_/g,'/');
+  const raw = atob(base64);
+  return Uint8Array.from([...raw].map(c=>c.charCodeAt(0)));
+}
+async function pushSupported(){
+  return 'serviceWorker' in navigator && 'PushManager' in window;
+}
+async function subscribeToPushGuru(){
+  if(!(await pushSupported())){ toast('Browser ini tidak mendukung notifikasi push'); return; }
+  try{
+    const perm = await Notification.requestPermission();
+    if(perm!=='granted'){ toast('Izin notifikasi ditolak'); return; }
+    const reg = await navigator.serviceWorker.ready;
+    let sub = await reg.pushManager.getSubscription();
+    if(!sub){
+      sub = await reg.pushManager.subscribe({ userVisibleOnly:true, applicationServerKey: urlBase64ToUint8Array(VAPID_PUBLIC_KEY) });
+    }
+    const j = sub.toJSON();
+    await sb('push_subscriptions', {method:'POST', headers:{'Prefer':'resolution=merge-duplicates,return=minimal'}, body:JSON.stringify({
+      owner_type:'guru', owner_id: currentGuru.id, kelas_id: currentGuru.kelas_id||null, peran: currentGuru.peran,
+      endpoint: j.endpoint, p256dh: j.keys.p256dh, auth: j.keys.auth
+    })});
+    toast('Notifikasi push diaktifkan ✅');
+    updatePushButtonState(true);
+  }catch(e){ toast('Gagal aktifkan push: '+e.message); }
+}
+async function checkPushSubscribed(){
+  if(!(await pushSupported())) return false;
+  try{
+    const reg = await navigator.serviceWorker.ready;
+    const sub = await reg.pushManager.getSubscription();
+    return !!sub;
+  }catch(e){ return false; }
+}
+function updatePushButtonState(active){
+  const btn = document.getElementById('pushEnableBtn');
+  if(!btn) return;
+  btn.textContent = active ? '✅ Notifikasi Push Aktif' : '🔔 Aktifkan Notifikasi Push';
+  btn.classList.toggle('btn-outline', !active);
+  btn.classList.toggle('btn-primary', active);
+}
+async function triggerPush(payload){
+  try{
+    if(!cfg.url || !cfg.key) return;
+    await fetch(cfg.url.replace(/\/$/,'')+'/functions/v1/send-push', {
+      method:'POST',
+      headers:{'Content-Type':'application/json','Authorization':'Bearer '+cfg.key,'apikey':cfg.key},
+      body: JSON.stringify(payload)
+    });
+  }catch(e){ /* push gagal terkirim, jangan ganggu alur utama kirim pesan */ }
+}
+
 let notifLastRead = {};
 let notifChatUnread = {}; // { kelas_id: jumlah_belum_dibaca }
 
@@ -883,6 +948,7 @@ async function enterApp(){
   document.getElementById('waliKelasNotice').style.display = isAdmin ? 'none' : '';
   const isSuperAdmin = !!currentGuru.super_admin_pin;
   document.getElementById('koneksiDbCard').style.display = isSuperAdmin ? '' : 'none';
+  checkPushSubscribed().then(updatePushButtonState);
 }
 
 function applyBranding(){
@@ -1445,6 +1511,7 @@ async function sendChatMessage(){
     })});
     document.getElementById('chatTextInput').value=''; pendingPhoto=null;
     loadChatMessages();
+    triggerPush({ type:'chat_to_ortu', kelas_id: activeChatKelasId, title:'Pesan dari '+currentGuru.nama, body: text || '📷 Foto' });
   }catch(e){ toast('Gagal kirim: '+e.message); }
 }
 
@@ -1546,6 +1613,7 @@ async function sendInternalChatMessage(){
     })});
     document.getElementById('chatInternalTextInput').value=''; pendingInternalPhoto=null;
     loadInternalChatMessages();
+    triggerPush({ type:'internal', exclude_owner_id: currentGuru.id, title:'Chat Internal: '+currentGuru.nama, body: text || '📷 Foto' });
   }catch(e){ toast('Gagal kirim: '+e.message); }
 }
 function clearInternalChatUnread(){
@@ -1841,6 +1909,7 @@ async function sendBroadcast(){
     document.getElementById('bcFotoStatus').textContent=''; pendingBcFoto=null;
     toast('Pengumuman terkirim ke semua orang tua 📢');
     loadBroadcasts();
+    triggerPush({ type:'broadcast', title:'📢 '+judul, body: isi || 'Ada pengumuman baru dari sekolah' });
   }catch(e){ toast('Gagal kirim: '+e.message); }
 }
 async function loadBroadcasts(){
