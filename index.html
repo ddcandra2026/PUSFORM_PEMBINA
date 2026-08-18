@@ -213,6 +213,15 @@ main{flex:1;padding:16px 16px 100px;position:relative;z-index:1;}
 .chat-input-row input[type=text]{flex:1;border-radius:100px;padding:11px 16px;}
 .icon-btn{width:42px;height:42px;border-radius:50%;background:var(--surface2);display:flex;align-items:center;justify-content:center;flex-shrink:0;border:1.5px solid var(--border2);}
 .send-btn{width:42px;height:42px;border-radius:50%;background:linear-gradient(135deg,var(--coral),var(--coral-dk));color:#fff;display:flex;align-items:center;justify-content:center;flex-shrink:0;box-shadow:0 4px 12px rgba(var(--coral-rgb),0.35);}
+.icon-btn.recording{background:#FF3B30;color:#fff;animation:notifPulse 1.2s ease infinite;}
+.recording-row{display:none;align-items:center;gap:10px;padding-top:10px;border-top:1px solid var(--border);}
+.recording-row.active{display:flex;}
+.recording-dot{width:10px;height:10px;border-radius:50%;background:#FF3B30;animation:notifPulse 1s ease infinite;flex-shrink:0;}
+.recording-time{font-family:var(--mono);font-weight:700;font-size:14px;flex:1;}
+.recording-stop-btn{padding:9px 16px;border-radius:100px;background:#FF3B30;color:#fff;font-weight:700;font-size:12.5px;}
+.recording-cancel-btn{padding:9px 14px;border-radius:100px;background:var(--surface2);color:var(--text2);font-weight:700;font-size:12.5px;}
+.voice-msg{display:flex;align-items:center;gap:8px;min-width:160px;}
+.voice-msg audio{height:34px;flex:1;}
 
 /* BOTTOM NAV */
 .bottom-nav{
@@ -448,11 +457,18 @@ main{flex:1;padding:16px 16px 100px;position:relative;z-index:1;}
         <div class="card" style="padding:14px;">
           <div class="chat-wrap">
             <div class="chat-scroll" id="chatScroll"></div>
-            <div class="chat-input-row">
+            <div class="chat-input-row" id="chatInputRowKelas">
               <label class="icon-btn" for="chatPhotoInput">📷</label>
               <input type="file" id="chatPhotoInput" accept="image/*" class="hidden" onchange="handleChatPhoto(event)">
+              <button class="icon-btn" id="micBtnKelas" onclick="toggleVoiceRecording('kelas')">🎤</button>
               <input type="text" id="chatTextInput" placeholder="Tulis pesan..." onkeydown="if(event.key==='Enter')sendChatMessage()">
               <button class="send-btn" onclick="sendChatMessage()">➤</button>
+            </div>
+            <div class="recording-row" id="recordingRowKelas">
+              <div class="recording-dot"></div>
+              <div class="recording-time" id="recordingTimeKelas">0:00</div>
+              <button class="recording-cancel-btn" onclick="cancelVoiceRecording('kelas')">Batal</button>
+              <button class="recording-stop-btn" onclick="stopVoiceRecording('kelas')">⏹ Kirim</button>
             </div>
           </div>
         </div>
@@ -463,11 +479,18 @@ main{flex:1;padding:16px 16px 100px;position:relative;z-index:1;}
         <div class="card" style="padding:14px;">
           <div class="chat-wrap">
             <div class="chat-scroll" id="chatInternalScroll"></div>
-            <div class="chat-input-row">
+            <div class="chat-input-row" id="chatInputRowInternal">
               <label class="icon-btn" for="chatInternalPhotoInput">📷</label>
               <input type="file" id="chatInternalPhotoInput" accept="image/*" class="hidden" onchange="handleInternalChatPhoto(event)">
+              <button class="icon-btn" id="micBtnInternal" onclick="toggleVoiceRecording('internal')">🎤</button>
               <input type="text" id="chatInternalTextInput" placeholder="Tulis pesan ke sesama staf..." onkeydown="if(event.key==='Enter')sendInternalChatMessage()">
               <button class="send-btn" onclick="sendInternalChatMessage()">➤</button>
+            </div>
+            <div class="recording-row" id="recordingRowInternal">
+              <div class="recording-dot"></div>
+              <div class="recording-time" id="recordingTimeInternal">0:00</div>
+              <button class="recording-cancel-btn" onclick="cancelVoiceRecording('internal')">Batal</button>
+              <button class="recording-stop-btn" onclick="stopVoiceRecording('internal')">⏹ Kirim</button>
             </div>
           </div>
         </div>
@@ -1446,13 +1469,14 @@ function renderChat(rows){
     const mine = m.pengirim_tipe==='guru' || m.pengirim_tipe==='admin';
     const cls = mine ? 'bubble-out' : 'bubble-in';
     const img = m.foto_url ? `<img src="${m.foto_url}">` : '';
+    const audioHtml = m.audio_url ? `<div class="voice-msg">🎤<audio controls src="${m.audio_url}"></audio></div>` : '';
     const time = new Date(m.created_at).toLocaleTimeString('id-ID',{hour:'2-digit',minute:'2-digit'});
     const editedTag = m.edited_at ? ' <span style="opacity:0.7;font-style:italic;">(diedit)</span>' : '';
     const isOwn = mine && String(m.pengirim_id)===String(currentGuru.id);
     const canDelete = isOwn || currentGuru.peran==='admin';
     const bubbleHtml = `<div class="bubble ${cls}">
       <div class="bubble-sender">${m.pengirim_nama}${m.pengirim_tipe==='admin'?' · Admin':''}</div>
-      ${m.isi_teks?`<div>${escapeHtml(m.isi_teks)}${editedTag}</div>`:''}${img}
+      ${m.isi_teks?`<div>${escapeHtml(m.isi_teks)}${editedTag}</div>`:''}${img}${audioHtml}
       <div class="bubble-time">${time}</div>
     </div>`;
     if(canDelete){
@@ -1536,6 +1560,60 @@ function subscribeChat(){
     }).subscribe();
 }
 let pendingPhoto = null;
+let pendingVoiceKelas = null, pendingVoiceInternal = null;
+
+/* ============================================================
+   REKAM PESAN SUARA — dipakai bersama Chat Kelas & Chat Internal
+============================================================ */
+let voiceRecorder = null, voiceChunks = [], voiceStartTime = 0, voiceTimerInterval = null, voiceStream = null;
+function rowId(context, base){ return base + (context==='kelas' ? 'Kelas' : 'Internal'); }
+async function toggleVoiceRecording(context){
+  if(voiceRecorder && voiceRecorder.state==='recording') return;
+  if(!navigator.mediaDevices || !window.MediaRecorder){ toast('Perangkat/browser ini tidak mendukung rekam suara'); return; }
+  try{
+    voiceStream = await navigator.mediaDevices.getUserMedia({ audio:true });
+  }catch(e){ toast('Tidak bisa akses mikrofon (izin ditolak?)'); return; }
+  voiceChunks = [];
+  const mimeType = MediaRecorder.isTypeSupported('audio/webm') ? 'audio/webm' : (MediaRecorder.isTypeSupported('audio/mp4') ? 'audio/mp4' : '');
+  voiceRecorder = new MediaRecorder(voiceStream, mimeType ? { mimeType } : undefined);
+  voiceRecorder.ondataavailable = (e)=>{ if(e.data.size>0) voiceChunks.push(e.data); };
+  voiceRecorder.start();
+  voiceStartTime = Date.now();
+  document.getElementById(rowId(context,'chatInputRow')).style.display = 'none';
+  document.getElementById(rowId(context,'recordingRow')).classList.add('active');
+  voiceTimerInterval = setInterval(()=>{
+    const sec = Math.floor((Date.now()-voiceStartTime)/1000);
+    const m = Math.floor(sec/60), s = sec%60;
+    const el = document.getElementById(rowId(context,'recordingTime'));
+    if(el) el.textContent = m+':'+String(s).padStart(2,'0');
+  }, 500);
+}
+function resetRecordingUI(context){
+  document.getElementById(rowId(context,'chatInputRow')).style.display = 'flex';
+  document.getElementById(rowId(context,'recordingRow')).classList.remove('active');
+  clearInterval(voiceTimerInterval);
+  if(voiceStream){ voiceStream.getTracks().forEach(t=>t.stop()); voiceStream=null; }
+}
+function cancelVoiceRecording(context){
+  if(voiceRecorder && voiceRecorder.state==='recording'){ voiceRecorder.onstop=null; voiceRecorder.stop(); }
+  voiceRecorder = null; voiceChunks = [];
+  resetRecordingUI(context);
+}
+function stopVoiceRecording(context){
+  if(!voiceRecorder || voiceRecorder.state!=='recording') return;
+  voiceRecorder.onstop = ()=>{
+    const blob = new Blob(voiceChunks, { type: voiceRecorder.mimeType || 'audio/webm' });
+    resetRecordingUI(context);
+    const reader = new FileReader();
+    reader.onload = ()=>{
+      if(context==='kelas'){ pendingVoiceKelas = reader.result; sendChatMessage(); }
+      else { pendingVoiceInternal = reader.result; sendInternalChatMessage(); }
+    };
+    reader.readAsDataURL(blob);
+  };
+  voiceRecorder.stop();
+}
+
 function handleChatPhoto(ev){
   const file = ev.target.files[0]; if(!file) return;
   const reader = new FileReader();
@@ -1555,8 +1633,9 @@ function handleChatPhoto(ev){
 }
 async function sendChatMessage(){
   const text = document.getElementById('chatTextInput').value.trim();
-  if(!text && !pendingPhoto) return;
+  if(!text && !pendingPhoto && !pendingVoiceKelas) return;
   if(!activeChatKelasId){ toast('Pilih kelas dahulu'); return; }
+  const hadVoice = !!pendingVoiceKelas;
   try{
     await sb('pesan', {method:'POST', body:JSON.stringify({
       kelas_id: activeChatKelasId,
@@ -1564,11 +1643,12 @@ async function sendChatMessage(){
       pengirim_nama: currentGuru.nama,
       pengirim_id: currentGuru.id,
       isi_teks: text || null,
-      foto_url: pendingPhoto || null
+      foto_url: pendingPhoto || null,
+      audio_url: pendingVoiceKelas || null
     })});
-    document.getElementById('chatTextInput').value=''; pendingPhoto=null;
+    document.getElementById('chatTextInput').value=''; pendingPhoto=null; pendingVoiceKelas=null;
     loadChatMessages();
-    triggerPush({ type:'chat_to_ortu', kelas_id: activeChatKelasId, title:'Pesan dari '+currentGuru.nama, body: text || '📷 Foto' });
+    triggerPush({ type:'chat_to_ortu', kelas_id: activeChatKelasId, title:'Pesan dari '+currentGuru.nama, body: text || (hadVoice?'🎤 Pesan suara':'📷 Foto') });
   }catch(e){ toast('Gagal kirim: '+e.message); }
 }
 
@@ -1598,12 +1678,13 @@ function renderInternalChat(rows){
     const isMe = String(m.pengirim_id)===String(currentGuru.id);
     const cls = isMe?'bubble-out':'bubble-in';
     const img = m.foto_url ? `<img src="${m.foto_url}">` : '';
+    const audioHtml = m.audio_url ? `<div class="voice-msg">🎤<audio controls src="${m.audio_url}"></audio></div>` : '';
     const time = new Date(m.created_at).toLocaleTimeString('id-ID',{hour:'2-digit',minute:'2-digit'});
     const editedTag = m.edited_at ? ' <span style="opacity:0.7;font-style:italic;">(diedit)</span>' : '';
     const canDelete = isMe || currentGuru.peran==='admin';
     const bubbleHtml = `<div class="bubble ${cls}">
       <div class="bubble-sender">${m.pengirim_nama}</div>
-      ${m.isi_teks?`<div>${escapeHtml(m.isi_teks)}${editedTag}</div>`:''}${img}
+      ${m.isi_teks?`<div>${escapeHtml(m.isi_teks)}${editedTag}</div>`:''}${img}${audioHtml}
       <div class="bubble-time">${time}</div>
     </div>`;
     if(canDelete){
@@ -1667,18 +1748,20 @@ function handleInternalChatPhoto(ev){
 }
 async function sendInternalChatMessage(){
   const text = document.getElementById('chatInternalTextInput').value.trim();
-  if(!text && !pendingInternalPhoto) return;
+  if(!text && !pendingInternalPhoto && !pendingVoiceInternal) return;
+  const hadVoice = !!pendingVoiceInternal;
   try{
     await sb('pesan_internal', {method:'POST', body:JSON.stringify({
       pengirim_id: currentGuru.id,
       pengirim_nama: currentGuru.nama,
       pengirim_peran: currentGuru.peran,
       isi_teks: text || null,
-      foto_url: pendingInternalPhoto || null
+      foto_url: pendingInternalPhoto || null,
+      audio_url: pendingVoiceInternal || null
     })});
-    document.getElementById('chatInternalTextInput').value=''; pendingInternalPhoto=null;
+    document.getElementById('chatInternalTextInput').value=''; pendingInternalPhoto=null; pendingVoiceInternal=null;
     loadInternalChatMessages();
-    triggerPush({ type:'internal', exclude_owner_id: currentGuru.id, title:'Chat Internal: '+currentGuru.nama, body: text || '📷 Foto' });
+    triggerPush({ type:'internal', exclude_owner_id: currentGuru.id, title:'Chat Internal: '+currentGuru.nama, body: text || (hadVoice?'🎤 Pesan suara':'📷 Foto') });
   }catch(e){ toast('Gagal kirim: '+e.message); }
 }
 function clearInternalChatUnread(){
